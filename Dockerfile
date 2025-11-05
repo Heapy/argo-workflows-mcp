@@ -11,7 +11,8 @@ RUN addgroup -g 1000 mcp && \
 COPY build/install/argo-workflows-mcp /app
 
 # Set ownership
-RUN chown -R mcp:mcp /app
+RUN chown -R mcp:mcp /app && \
+    chmod +x /app/bin/argo-workflows-mcp
 
 # Switch to non-root user
 USER mcp
