@@ -42,9 +42,9 @@ Add this to your Claude Desktop MCP configuration file:
         "-e", "ARGO_NAMESPACE=default",
         "-e", "MCP_ALLOW_MUTATIONS=true",
         "-e", "MCP_AUDIT_FILE=/app/logs/mcp-audit.log",
-        "-v", "${HOME}/.kube/config:/home/mcp/.kube/config:ro",
-        "-v", "${HOME}/.argo-mcp-logs:/app/logs",
-        "argo-workflows-mcp:latest"
+        "-v", "/Users/your-user/.kube/config:/home/mcp/.kube/config:ro",
+        "-v", "/Users/your-user/.argo-mcp-logs:/app/logs",
+        "ghcr.io/heapy/argo-workflows-mcp:main"
       ]
     }
   }
@@ -72,9 +72,9 @@ Add this to your Claude Code MCP configuration file:
         "-e", "ARGO_NAMESPACE=default",
         "-e", "MCP_ALLOW_MUTATIONS=true",
         "-e", "MCP_AUDIT_FILE=/app/logs/mcp-audit.log",
-        "-v", "${HOME}/.kube/config:/home/mcp/.kube/config:ro",
-        "-v", "${HOME}/.argo-mcp-logs:/app/logs",
-        "argo-workflows-mcp:latest"
+        "-v", "/Users/your-user/.kube/config:/home/mcp/.kube/config:ro",
+        "-v", "/Users/your-user/.argo-mcp-logs:/app/logs",
+        "ghcr.io/heapy/argo-workflows-mcp:main"
       ]
     }
   }
@@ -82,6 +82,26 @@ Add this to your Claude Code MCP configuration file:
 ```
 
 ## Docker Usage
+
+### Using the published image
+
+Images are published to GitHub Container Registry by CI:
+
+- `ghcr.io/heapy/argo-workflows-mcp:main` — latest build from `main`
+- `ghcr.io/heapy/argo-workflows-mcp:<git-sha>` — immutable build per commit
+
+```bash
+docker run -it --rm \
+  -e ARGO_BASE_URL=https://your-argo-server:2746 \
+  -e ARGO_NAMESPACE=default \
+  -e ARGO_TOKEN=$(cat ~/secrets/argo-token) \
+  -e MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
+  -v /Users/your-user/.kube/config:/home/mcp/.kube/config:ro \
+  -v /Users/your-user/.argo-mcp-logs:/app/logs \
+  ghcr.io/heapy/argo-workflows-mcp:main
+```
+
+### Building locally
 
 ```bash
 # Build the application first
