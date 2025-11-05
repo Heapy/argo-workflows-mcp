@@ -1,6 +1,8 @@
 # Runtime stage - assumes application is built locally
 FROM bellsoft/liberica-openjre-alpine:25
 
+ARG MCP_SERVER_VERSION=unknown
+
 WORKDIR /app
 
 # Create non-root user
@@ -19,13 +21,7 @@ USER mcp
 
 # Environment variables with defaults
 ENV MCP_SERVER_NAME="argo-workflows-mcp" \
-    MCP_SERVER_VERSION="0.1.0" \
-    MCP_ALLOW_DESTRUCTIVE="false" \
-    MCP_ALLOW_MUTATIONS="false" \
-    MCP_REQUIRE_CONFIRMATION="true" \
-    MCP_NAMESPACES_ALLOW="*" \
-    MCP_AUDIT_ENABLED="true" \
-    MCP_LOG_LEVEL="info"
+    MCP_SERVER_VERSION="${MCP_SERVER_VERSION}"
 
 # Run the MCP server
 ENTRYPOINT ["/app/bin/argo-workflows-mcp"]
