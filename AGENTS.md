@@ -8,8 +8,9 @@ Implement one, let the user test it, and only then add another.
 
 ## Dependencies
 
-Check gradle/libs.versions.toml for dependencies. 
-As well as @settings.gradle.kts and @build.gradle.kts.
+- Use SKDMAN to user correct JVM version: `sdk use java 25.0.1-amzn`
+- Check gradle/libs.versions.toml for dependencies.
+- Check @settings.gradle.kts and @build.gradle.kts for dependencies.
 
 ## MCP Configuration
 
