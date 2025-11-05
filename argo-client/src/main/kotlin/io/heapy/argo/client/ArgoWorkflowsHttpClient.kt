@@ -151,7 +151,6 @@ class ArgoWorkflowsHttpClient private constructor(
                     engine {
                         https {
                             trustManager = trustAllCertificatesManager()
-                            hostnameVerifier = { _, _ -> true }
                         }
                     }
                 }
