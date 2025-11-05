@@ -30,16 +30,15 @@ Add this to your Claude Desktop MCP configuration file:
 ### Using the `claude` CLI
 
 ```bash
-claude mcp add argo-workflows \
-  --command docker \
-  --arg run --arg -i --arg --rm \
-  --arg -e --arg ARGO_BASE_URL=http://host.docker.internal:2746 \
-  --arg -e --arg ARGO_NAMESPACE=default \
-  --arg -e --arg MCP_ALLOW_MUTATIONS=true \
-  --arg -e --arg MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
-  --arg -v --arg "$HOME/.kube/config:/home/mcp/.kube/config:ro" \
-  --arg -v --arg "$HOME/.argo-mcp-logs:/app/logs" \
-  --arg ghcr.io/heapy/argo-workflows-mcp:main
+claude mcp add --transport stdio argo-workflows \
+  --env ARGO_BASE_URL=http://host.docker.internal:2746 \
+  --env ARGO_NAMESPACE=default \
+  --env MCP_ALLOW_MUTATIONS=true \
+  --env MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
+  -- docker run -i --rm \
+    -v "$HOME/.kube/config:/home/mcp/.kube/config:ro" \
+    -v "$HOME/.argo-mcp-logs:/app/logs" \
+    ghcr.io/heapy/argo-workflows-mcp:main
 ```
 
 After running the command restart Claude Desktop so it reloads the MCP list.
