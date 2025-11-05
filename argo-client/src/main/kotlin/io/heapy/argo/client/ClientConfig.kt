@@ -7,16 +7,16 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ArgoClientConfig(
-    val baseUrl: String = "http://localhost:2746",
-    val defaultNamespace: String = "default",
-    val auth: ArgoAuthConfig = ArgoAuthConfig(),
-    val insecureSkipTlsVerify: Boolean = false,
-    val requestTimeoutSeconds: Long = 30
+    val baseUrl: String,
+    val defaultNamespace: String,
+    val auth: ArgoAuthConfig,
+    val insecureSkipTlsVerify: Boolean,
+    val requestTimeoutSeconds: Long,
 )
 
 @Serializable
 data class ArgoAuthConfig(
-    val bearerToken: String? = null,
-    val username: String? = null,
-    val password: String? = null
+    val bearerToken: String?,
+    val username: String?,
+    val password: String?,
 )

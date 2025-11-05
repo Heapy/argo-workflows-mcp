@@ -8,10 +8,11 @@ import io.heapy.argo.client.WorkflowSummary
 import io.heapy.argo.workflows.mcp.config.ServerConfig
 import io.heapy.argo.workflows.mcp.operations.*
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
 import kotlinx.serialization.json.JsonObject
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import kotlin.time.Instant
+import kotlin.time.Instant
 
 class WorkflowOperationsTest {
     private val config = ServerConfig()

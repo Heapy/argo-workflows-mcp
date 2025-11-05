@@ -12,5 +12,4 @@ dependencies {
     implementation(ktorLibs.client.cio)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.client.contentNegotiation)
-    implementation(libs.kotlinx.datetime)
 }

@@ -12,7 +12,6 @@ dependencies {
     implementation(project(":argo-client"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.datetime)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(libs.komok.tech.logging)
