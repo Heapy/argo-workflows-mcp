@@ -33,3 +33,9 @@ kubectl patch svc argo-server -n argo -p '{"spec":{"type":"NodePort","ports":[{"
 ```
 
 This will make Argo accessible at http://localhost:30746 permanently.
+
+### Configuration for local development
+
+Use `host.docker.internal` as host if you're using local argo and running MCP in Docker container.
+
+If the exposed certificate is issued for `localhost`, export `ARGO_TLS_SERVER_NAME=localhost` so the client presents the expected SNI value during the TLS handshake.

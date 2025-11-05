@@ -147,10 +147,13 @@ class ArgoWorkflowsHttpClient private constructor(
                         }
                     }
                 }
-                if (config.insecureSkipTlsVerify) {
-                    engine {
-                        https {
+                engine {
+                    https {
+                        if (config.insecureSkipTlsVerify) {
                             trustManager = trustAllCertificatesManager()
+                        }
+                        if (config.tlsServerName != null) {
+                            serverName = config.tlsServerName
                         }
                     }
                 }

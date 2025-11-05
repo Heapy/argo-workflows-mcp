@@ -139,6 +139,8 @@ docker run -it --rm \
   argo-workflows-mcp:latest
 ```
 
+If the TLS certificate is issued for another host (for example `localhost` while you access the server via `host.docker.internal`), set `ARGO_TLS_SERVER_NAME` to the certificate hostname so the client presents the correct SNI value.
+
 ## Environment Variables
 
 ### Server Configuration
@@ -154,6 +156,7 @@ docker run -it --rm \
 - `ARGO_USERNAME` - Username for basic auth
 - `ARGO_PASSWORD` - Password for basic auth
 - `ARGO_INSECURE_SKIP_TLS_VERIFY` - Skip TLS verification (default: `false`)
+- `ARGO_TLS_SERVER_NAME` - Override TLS server name / SNI value when establishing TLS connections
 - `ARGO_REQUEST_TIMEOUT_SECONDS` - Request timeout (default: `30`)
 
 ### Kubernetes Configuration
