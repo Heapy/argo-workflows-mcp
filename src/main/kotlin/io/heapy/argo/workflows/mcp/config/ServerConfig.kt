@@ -49,6 +49,7 @@ data class ServerConfig(
                         ?: false,
                     requestTimeoutSeconds = env["ARGO_REQUEST_TIMEOUT_SECONDS"]?.toLongOrNull()
                         ?: 30,
+                    tlsServerName = env["ARGO_TLS_SERVER_NAME"],
                 ),
                 permissions = PermissionsConfig(
                     allowDestructive = env["MCP_ALLOW_DESTRUCTIVE"]?.toBoolean() ?: false,

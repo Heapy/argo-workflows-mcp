@@ -12,6 +12,7 @@ data class ArgoClientConfig(
     val auth: ArgoAuthConfig,
     val insecureSkipTlsVerify: Boolean,
     val requestTimeoutSeconds: Long,
+    val tlsServerName: String?,
 )
 
 @Serializable
