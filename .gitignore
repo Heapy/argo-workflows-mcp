@@ -9,3 +9,6 @@ build
 
 # Intellij Idea Configuration
 .idea
+
+# Storing Usage example for local development
+.example
