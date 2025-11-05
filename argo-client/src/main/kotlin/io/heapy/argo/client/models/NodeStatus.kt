@@ -25,6 +25,7 @@ import io.heapy.argo.client.models.TemplateRef
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * NodeStatus contains status information about an individual node in the workflow
@@ -94,7 +95,7 @@ data class NodeStatus (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "finishedAt")
-    val finishedAt: kotlinx.datetime.Instant? = null,
+    val finishedAt: Instant? = null,
 
     /* HostNodeName name of the Kubernetes node on which the Pod is running, if applicable */
     @SerialName(value = "hostNodeName")
@@ -138,7 +139,7 @@ data class NodeStatus (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "startedAt")
-    val startedAt: kotlinx.datetime.Instant? = null,
+    val startedAt: Instant? = null,
 
     @SerialName(value = "synchronizationStatus")
     val synchronizationStatus: NodeSynchronizationStatus? = null,

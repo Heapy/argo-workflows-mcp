@@ -19,6 +19,7 @@ package io.heapy.argo.client.models
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * 
@@ -35,7 +36,7 @@ data class ArgoEventsCondition (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "lastTransitionTime")
-    val lastTransitionTime: kotlinx.datetime.Instant? = null,
+    val lastTransitionTime: Instant? = null,
 
     @SerialName(value = "message")
     val message: kotlin.String? = null,

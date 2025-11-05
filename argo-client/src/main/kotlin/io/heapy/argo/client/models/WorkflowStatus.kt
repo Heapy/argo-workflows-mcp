@@ -28,6 +28,7 @@ import io.heapy.argo.client.models.WorkflowSpec
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * WorkflowStatus contains overall status information about a workflow
@@ -76,7 +77,7 @@ data class WorkflowStatus (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "finishedAt")
-    val finishedAt: kotlinx.datetime.Instant? = null,
+    val finishedAt: Instant? = null,
 
     /* A human readable message indicating details about why the workflow is in this condition. */
     @SerialName(value = "message")
@@ -111,7 +112,7 @@ data class WorkflowStatus (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "startedAt")
-    val startedAt: kotlinx.datetime.Instant? = null,
+    val startedAt: Instant? = null,
 
     /* StoredTemplates is a mapping between a template ref and the node's status. */
     @Contextual @SerialName(value = "storedTemplates")

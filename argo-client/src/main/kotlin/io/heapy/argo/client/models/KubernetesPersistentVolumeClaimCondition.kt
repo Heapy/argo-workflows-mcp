@@ -19,6 +19,7 @@ package io.heapy.argo.client.models
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * PersistentVolumeClaimCondition contains details about state of pvc
@@ -44,11 +45,11 @@ data class KubernetesPersistentVolumeClaimCondition (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "lastProbeTime")
-    val lastProbeTime: kotlinx.datetime.Instant? = null,
+    val lastProbeTime: Instant? = null,
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "lastTransitionTime")
-    val lastTransitionTime: kotlinx.datetime.Instant? = null,
+    val lastTransitionTime: Instant? = null,
 
     /* message is the human-readable message indicating details about last transition. */
     @SerialName(value = "message")

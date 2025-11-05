@@ -20,6 +20,7 @@ import io.heapy.argo.client.models.ArgoEventsSelector
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * 
@@ -39,7 +40,7 @@ data class ArgoEventsResourceFilter (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "createdBy")
-    val createdBy: kotlinx.datetime.Instant? = null,
+    val createdBy: Instant? = null,
 
     @SerialName(value = "fields")
     val fields: kotlin.collections.List<ArgoEventsSelector>? = null,

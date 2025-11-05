@@ -19,6 +19,7 @@ package io.heapy.argo.client.models
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * ManagedFieldsEntry is a workflow-id, a FieldSet and the group version of the resource that the fieldset applies to.
@@ -61,7 +62,7 @@ data class ApiMachineryManagedFieldsEntry (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "time")
-    val time: kotlinx.datetime.Instant? = null
+    val time: Instant? = null
 
 ) {
 

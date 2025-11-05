@@ -21,6 +21,7 @@ import io.heapy.argo.client.models.KubernetesObjectReference
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * CronWorkflowStatus is the status of a CronWorkflow
@@ -50,7 +51,7 @@ data class CronWorkflowStatus (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "lastScheduledTime")
-    val lastScheduledTime: kotlinx.datetime.Instant? = null,
+    val lastScheduledTime: Instant? = null,
 
     /* v3.6 and after: Phase is an enum of Active or Stopped. It changes to Stopped when stopStrategy.expression is true */
     @SerialName(value = "phase")

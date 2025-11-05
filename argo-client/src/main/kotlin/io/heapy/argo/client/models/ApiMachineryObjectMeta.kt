@@ -21,6 +21,7 @@ import io.heapy.argo.client.models.ApiMachineryOwnerReference
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create.
@@ -51,7 +52,7 @@ data class ApiMachineryObjectMeta (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "creationTimestamp")
-    val creationTimestamp: kotlinx.datetime.Instant? = null,
+    val creationTimestamp: Instant? = null,
 
     /* Number of seconds allowed for this object to gracefully terminate before it will be removed from the system. Only set when deletionTimestamp is also set. May only be shortened. Read-only. */
     @SerialName(value = "deletionGracePeriodSeconds")
@@ -59,7 +60,7 @@ data class ApiMachineryObjectMeta (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "deletionTimestamp")
-    val deletionTimestamp: kotlinx.datetime.Instant? = null,
+    val deletionTimestamp: Instant? = null,
 
     /* Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed. Finalizers may be processed and removed in any order.  Order is NOT enforced because it introduces significant risk of stuck finalizers. finalizers is a shared field, any actor with permission can reorder it. If the finalizer list is processed in order, then this can lead to a situation in which the component responsible for the first finalizer in the list is waiting for a signal (field value, external system, or other) produced by a component responsible for a finalizer later in the list, resulting in a deadlock. Without enforced ordering finalizers are free to order amongst themselves and are not vulnerable to ordering changes in the list. */
     @SerialName(value = "finalizers")

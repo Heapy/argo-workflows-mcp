@@ -23,6 +23,7 @@ import io.heapy.argo.client.models.KubernetesObjectReference
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * Event is a report of an event somewhere in the cluster.  Events have a limited retention time and triggers and messages may evolve with time.  Event consumers should not rely on the timing of an event with a given Reason reflecting a consistent underlying trigger, or the continued existence of events with that Reason.  Events should be treated as informative, best-effort, supplemental data.
@@ -69,11 +70,11 @@ data class KubernetesEvent (
 
     /* MicroTime is version of Time with microsecond level precision. */
     @Contextual @SerialName(value = "eventTime")
-    val eventTime: kotlinx.datetime.Instant? = null,
+    val eventTime: Instant? = null,
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "firstTimestamp")
-    val firstTimestamp: kotlinx.datetime.Instant? = null,
+    val firstTimestamp: Instant? = null,
 
     /* Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
     @SerialName(value = "kind")
@@ -81,7 +82,7 @@ data class KubernetesEvent (
 
     /* Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON.  Wrappers are provided for many of the factory methods that the time package offers. */
     @Contextual @SerialName(value = "lastTimestamp")
-    val lastTimestamp: kotlinx.datetime.Instant? = null,
+    val lastTimestamp: Instant? = null,
 
     /* A human-readable description of the status of this operation. */
     @SerialName(value = "message")

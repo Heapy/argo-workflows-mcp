@@ -19,6 +19,7 @@ package io.heapy.argo.client.models
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
+import kotlin.time.Instant
 
 /**
  * EventSeries contain information on series of events, i.e. thing that was/is happening continuously for some time.
@@ -36,7 +37,7 @@ data class KubernetesEventSeries (
 
     /* MicroTime is version of Time with microsecond level precision. */
     @Contextual @SerialName(value = "lastObservedTime")
-    val lastObservedTime: kotlinx.datetime.Instant? = null
+    val lastObservedTime: Instant? = null
 
 ) {
 
