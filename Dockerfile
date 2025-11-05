@@ -20,8 +20,6 @@ USER mcp
 # Environment variables with defaults
 ENV MCP_SERVER_NAME="argo-workflows-mcp" \
     MCP_SERVER_VERSION="0.1.0" \
-    ARGO_BASE_URL="http://localhost:2746" \
-    ARGO_NAMESPACE="default" \
     MCP_ALLOW_DESTRUCTIVE="false" \
     MCP_ALLOW_MUTATIONS="false" \
     MCP_REQUIRE_CONFIRMATION="true" \

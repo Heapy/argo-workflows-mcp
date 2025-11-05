@@ -36,8 +36,10 @@ data class ServerConfig(
                     context = env["KUBE_CONTEXT"],
                 ),
                 argo = ArgoClientConfig(
-                    baseUrl = env["ARGO_BASE_URL"] ?: "http://localhost:2746",
-                    defaultNamespace = env["ARGO_NAMESPACE"] ?: "default",
+                    baseUrl = env["ARGO_BASE_URL"]
+                        ?: error("ARGO_BASE_URL is required"),
+                    defaultNamespace = env["ARGO_NAMESPACE"]
+                        ?: error("ARGO_NAMESPACE is required"),
                     auth = ArgoAuthConfig(
                         bearerToken = env["ARGO_TOKEN"],
                         username = env["ARGO_USERNAME"],
