@@ -1,0 +1,50 @@
+# Dependabot configuration for Argo-Workflows MCP
+# Updates dependencies automatically and creates pull requests
+
+version: 2
+updates:
+  # Gradle dependencies
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "gradle"
+      prefix-development: "gradle"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "gradle"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "actions"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
