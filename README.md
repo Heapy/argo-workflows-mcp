@@ -31,11 +31,11 @@ Add this to your Claude Desktop MCP configuration file:
 
 ```bash
 claude mcp add --transport stdio argo-workflows \
-  --env ARGO_BASE_URL=http://host.docker.internal:2746 \
-  --env ARGO_NAMESPACE=default \
-  --env MCP_ALLOW_MUTATIONS=true \
-  --env MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
   -- docker run -i --rm \
+    -e ARGO_BASE_URL=http://host.docker.internal:2746 \
+    -e ARGO_NAMESPACE=default \
+    -e MCP_ALLOW_MUTATIONS=true \
+    -e MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
     -v "$HOME/.kube/config:/home/mcp/.kube/config:ro" \
     -v "$HOME/.argo-mcp-logs:/app/logs" \
     ghcr.io/heapy/argo-workflows-mcp:main
