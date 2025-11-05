@@ -57,8 +57,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/Heapy/argo-workflows-mcp:main
-            ghcr.io/Heapy/argo-workflows-mcp:${{ github.sha }}
+            ghcr.io/heapy/argo-workflows-mcp:main
+            ghcr.io/heapy/argo-workflows-mcp:${{ github.sha }}
           labels: |
             org.opencontainers.image.title=Argo Workflows MCP Server
             org.opencontainers.image.description=MCP server for interacting with Argo Workflows clusters.
