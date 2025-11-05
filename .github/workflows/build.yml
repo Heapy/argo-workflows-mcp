@@ -38,6 +38,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v5
+      - name: "Determine version"
+        id: version
+        run: echo "value=$(./version.sh)" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v6
         with:
           name: "install-dist"
@@ -59,7 +62,10 @@ jobs:
           tags: |
             ghcr.io/heapy/argo-workflows-mcp:main
             ghcr.io/heapy/argo-workflows-mcp:${{ github.sha }}
+            ghcr.io/heapy/argo-workflows-mcp:${{ steps.version.outputs.value }}
           labels: |
             org.opencontainers.image.title=Argo Workflows MCP Server
             org.opencontainers.image.description=MCP server for interacting with Argo Workflows clusters.
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          build-args: |
+            MCP_SERVER_VERSION=${{ steps.version.outputs.value }}
