@@ -1,0 +1,54 @@
+FROM openapitools/openapi-generator-cli:v7.10.0
+
+WORKDIR /workspace
+
+# Copy the OpenAPI spec
+COPY argo-swagger.json /workspace/swagger-input.json
+RUN cat /workspace/swagger-input.json | \
+    sed 's/io.k8s.api.core.v1./Kubernetes/' | \
+    sed 's/io.argoproj.workflow.v1alpha1.//' | \
+    sed 's/github.com.argoproj.argo_events.pkg.apis.events.v1alpha1./ArgoEvents/' | \
+    sed 's/io.k8s.apimachinery.pkg.apis.meta.v1./ApiMachinery/' > /workspace/swagger.json
+
+# Generate Kotlin client
+RUN docker-entrypoint.sh generate \
+    -i /workspace/swagger.json \
+    -g kotlin \
+    -o /workspace/generated \
+    --library jvm-ktor \
+    --additional-properties=packageName=io.heapy.argo.client \
+    --additional-properties=groupId=io.heapy.argo \
+    --additional-properties=artifactId=argo-workflows-client \
+    --additional-properties=artifactVersion=1.0.0 \
+    --additional-properties=serializationLibrary=kotlinx_serialization \
+    --additional-properties=dateLibrary=kotlinx-datetime \
+    --skip-validate-spec \
+    --import-mappings Time=kotlin.time.Instant \
+    --import-mappings Affinity=io.kubernetes.client.openapi.models.V1Affinity \
+    --import-mappings ConfigMapKeySelector=io.kubernetes.client.openapi.models.V1ConfigMapKeySelector \
+    --import-mappings Container=io.kubernetes.client.openapi.models.V1Container \
+    --import-mappings ContainerPort=io.kubernetes.client.openapi.models.V1ContainerPort \
+    --import-mappings EnvFromSource=io.kubernetes.client.openapi.models.V1EnvFromSource \
+    --import-mappings EnvVar=io.kubernetes.client.openapi.models.V1EnvVar \
+    --import-mappings HostAlias=io.kubernetes.client.openapi.models.V1HostAlias \
+    --import-mappings Lifecycle=io.kubernetes.client.openapi.models.V1Lifecycle \
+    --import-mappings ListMeta=io.kubernetes.client.openapi.models.V1ListMeta \
+    --import-mappings LocalObjectReference=io.kubernetes.client.openapi.models.V1LocalObjectReference \
+    --import-mappings ObjectMeta=io.kubernetes.client.openapi.models.V1ObjectMeta \
+    --import-mappings ObjectReference=io.kubernetes.client.openapi.models.V1ObjectReference \
+    --import-mappings PersistentVolumeClaim=io.kubernetes.client.openapi.models.V1PersistentVolumeClaim \
+    --import-mappings PodDisruptionBudgetSpec=io.kubernetes.client.openapi.models.V1beta1PodDisruptionBudgetSpec \
+    --import-mappings PodDNSConfig=io.kubernetes.client.openapi.models.V1PodDNSConfig \
+    --import-mappings PodSecurityContext=io.kubernetes.client.openapi.models.V1PodSecurityContext \
+    --import-mappings Probe=io.kubernetes.client.openapi.models.V1Probe \
+    --import-mappings ResourceRequirements=io.kubernetes.client.openapi.models.V1ResourceRequirements \
+    --import-mappings SecretKeySelector=io.kubernetes.client.openapi.models.V1SecretKeySelector \
+    --import-mappings SecurityContext=io.kubernetes.client.openapi.models.V1SecurityContext \
+    --import-mappings Toleration=io.kubernetes.client.openapi.models.V1Toleration \
+    --import-mappings Volume=io.kubernetes.client.openapi.models.V1Volume \
+    --import-mappings VolumeDevice=io.kubernetes.client.openapi.models.V1VolumeDevice \
+    --import-mappings VolumeMount=io.kubernetes.client.openapi.models.V1VolumeMount \
+    --generate-alias-as-model
+
+# Output will be in /workspace/generated
+CMD ["ls", "-la", "/workspace/generated"]
