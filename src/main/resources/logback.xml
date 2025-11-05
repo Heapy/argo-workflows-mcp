@@ -1,0 +1,14 @@
+<configuration>
+    <property name="LOG_PATTERN" value="%d{ISO8601} [%thread] %-5level %logger - %msg%n" />
+
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDERR" />
+    </root>
+</configuration>
