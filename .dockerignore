@@ -1,0 +1,5 @@
+# Exclude everything
+*
+
+# Include only the built application
+!build/install/argo-workflows-mcp

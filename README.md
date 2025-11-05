@@ -98,6 +98,8 @@ docker run -it --rm \
   -e ARGO_BASE_URL=http://your-argo-server:2746 \
   -e ARGO_NAMESPACE=default \
   -e ARGO_TOKEN=your-token \
+  -e MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
+  -v $(pwd)/logs:/app/logs \
   argo-workflows-mcp:latest
 ```
 

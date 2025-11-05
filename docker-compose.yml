@@ -1,0 +1,34 @@
+services:
+  argo-workflows-mcp:
+    build: .
+    image: argo-workflows-mcp:latest
+    container_name: argo-workflows-mcp
+    environment:
+      # Server configuration
+      MCP_SERVER_NAME: "argo-workflows-mcp"
+      MCP_SERVER_VERSION: "0.1.0"
+
+      # Argo Workflows connection
+      ARGO_BASE_URL: "http://argo-server:2746"
+      ARGO_NAMESPACE: "default"
+      # ARGO_TOKEN: "your-token-here"
+      # ARGO_INSECURE_SKIP_TLS_VERIFY: "false"
+
+      # Permissions
+      MCP_ALLOW_DESTRUCTIVE: "false"
+      MCP_ALLOW_MUTATIONS: "false"
+      MCP_REQUIRE_CONFIRMATION: "true"
+      MCP_NAMESPACES_ALLOW: "*"
+
+      # Logging
+      MCP_AUDIT_ENABLED: "true"
+      MCP_AUDIT_FILE: "/app/logs/mcp-audit.log"
+      MCP_LOG_LEVEL: "info"
+    stdin_open: true
+    tty: true
+    volumes:
+      # Audit logs
+      - ./logs:/app/logs
+      # Mount kubeconfig if needed for local development
+      # - ~/.kube/config:/home/mcp/.kube/config:ro
+    # network_mode: host
