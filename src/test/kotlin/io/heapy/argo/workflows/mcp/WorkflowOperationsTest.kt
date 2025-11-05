@@ -1,22 +1,17 @@
 package io.heapy.argo.workflows.mcp
 
-import io.heapy.argo.client.ArgoWorkflowsClient
 import io.heapy.argo.client.WorkflowDetail
 import io.heapy.argo.client.WorkflowLogEntry
 import io.heapy.argo.client.WorkflowLogs
 import io.heapy.argo.client.WorkflowSummary
-import io.heapy.argo.workflows.mcp.config.ServerConfig
 import io.heapy.argo.workflows.mcp.operations.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import kotlin.time.Instant
-import kotlin.time.Instant
 
 class WorkflowOperationsTest {
-    private val config = ServerConfig()
-
     @Test
     fun `listWorkflows filters by status`() = runTest {
         val fakeClient = FakeArgoWorkflowsClient().apply {
@@ -39,7 +34,7 @@ class WorkflowOperationsTest {
                 )
             )
         }
-        val ops = WorkflowOperations(config, fakeClient)
+        val ops = WorkflowOperations(serverConfig, fakeClient)
 
         val result = ops.listWorkflows(namespace = "default", status = "Succeeded", limit = 10)
 
@@ -72,7 +67,7 @@ class WorkflowOperationsTest {
         val fakeClient = FakeArgoWorkflowsClient().apply {
             workflowDetailResult = detail
         }
-        val ops = WorkflowOperations(config, fakeClient)
+        val ops = WorkflowOperations(serverConfig, fakeClient)
 
         val result = ops.getWorkflow(namespace = "default", name = "test-workflow")
 
@@ -98,7 +93,7 @@ class WorkflowOperationsTest {
         val fakeClient = FakeArgoWorkflowsClient().apply {
             workflowLogsResult = logs
         }
-        val ops = WorkflowOperations(config, fakeClient)
+        val ops = WorkflowOperations(serverConfig, fakeClient)
 
         val result = ops.getWorkflowLogs(namespace = "default", workflowName = "demo", podName = null)
 
@@ -125,7 +120,7 @@ class WorkflowOperationsTest {
         val fakeClient = FakeArgoWorkflowsClient().apply {
             workflowLogsResult = logs
         }
-        val ops = WorkflowOperations(config, fakeClient)
+        val ops = WorkflowOperations(serverConfig, fakeClient)
 
         val result = ops.getWorkflowLogs(
             namespace = "default",
@@ -147,7 +142,7 @@ class WorkflowOperationsTest {
 
     @Test
     fun `terminateWorkflow requires confirmation when destructive operations disabled`() = runTest {
-        val ops = WorkflowOperations(config, FakeArgoWorkflowsClient())
+        val ops = WorkflowOperations(serverConfig, FakeArgoWorkflowsClient())
 
         val result = ops.terminateWorkflow(
             namespace = "default",
@@ -163,8 +158,8 @@ class WorkflowOperationsTest {
 
     @Test
     fun `terminateWorkflow shows dry run by default`() = runTest {
-        val allowDestructiveConfig = config.copy(
-            permissions = config.permissions.copy(allowDestructive = true)
+        val allowDestructiveConfig = serverConfig.copy(
+            permissions = serverConfig.permissions.copy(allowDestructive = true)
         )
         val ops = WorkflowOperations(allowDestructiveConfig, FakeArgoWorkflowsClient())
 
@@ -179,123 +174,4 @@ class WorkflowOperationsTest {
         val dryRun = result as OperationResult.DryRun
         assertTrue(dryRun.preview.contains("Would terminate"))
     }
-}
-
-class CronWorkflowOperationsTest {
-    private val config = ServerConfig()
-    private val cronOps = CronWorkflowOperations(config)
-
-    @Test
-    fun `listCronWorkflows returns mock data`() = runTest {
-        val result = cronOps.listCronWorkflows(namespace = "default")
-
-        assertTrue(result is OperationResult.Success)
-        val success = result as OperationResult.Success
-        assertTrue(success.message.contains("cron"))
-    }
-
-    @Test
-    fun `getCronWorkflow returns schedule details`() = runTest {
-        val result = cronOps.getCronWorkflow(namespace = "default", name = "daily-job")
-
-        assertTrue(result is OperationResult.Success)
-        val success = result as OperationResult.Success
-        assertEquals("daily-job", success.data["name"])
-        assertNotNull(success.data["schedule"])
-    }
-
-    @Test
-    fun `toggleCronSuspension requires mutations enabled`() = runTest {
-        val result = cronOps.toggleCronSuspension(
-            namespace = "default",
-            name = "daily-job",
-            suspend = true
-        )
-
-        assertTrue(result is OperationResult.Error)
-        val error = result as OperationResult.Error
-        assertEquals("PERMISSION_DENIED", error.code)
-    }
-}
-
-class TemplateOperationsTest {
-    private val templateOps = TemplateOperations()
-
-    @Test
-    fun `listWorkflowTemplates returns mock data`() = runTest {
-        val result = templateOps.listWorkflowTemplates(namespace = "default")
-
-        assertTrue(result is OperationResult.Success)
-        val success = result as OperationResult.Success
-        assertTrue(success.message.contains("templates"))
-    }
-
-    @Test
-    fun `getWorkflowTemplate returns template details`() = runTest {
-        val result = templateOps.getWorkflowTemplate(namespace = "default", name = "build-template")
-
-        assertTrue(result is OperationResult.Success)
-        val success = result as OperationResult.Success
-        assertEquals("build-template", success.data["name"])
-        assertNotNull(success.data["entrypoint"])
-    }
-
-    @Test
-    fun `listClusterWorkflowTemplates returns cluster-scoped templates`() = runTest {
-        val result = templateOps.listClusterWorkflowTemplates()
-
-        assertTrue(result is OperationResult.Success)
-        val success = result as OperationResult.Success
-        assertTrue(success.message.contains("cluster"))
-    }
-}
-
-class MCPServerTest {
-    @Test
-    fun `server can be created with default config`() {
-        val config = ServerConfig()
-        val mcpServer = ArgoWorkflowsMCPServer(config, FakeArgoWorkflowsClient())
-        val server = mcpServer.createServer()
-
-        assertNotNull(server)
-    }
-}
-
-private class FakeArgoWorkflowsClient : ArgoWorkflowsClient {
-    var listWorkflowsResult: List<WorkflowSummary> = emptyList()
-    var workflowDetailResult: WorkflowDetail = WorkflowDetail(
-        summary = WorkflowSummary(
-            name = "default",
-            namespace = "default",
-            phase = "Succeeded",
-            progress = "1/1",
-            startedAt = Instant.parse("2024-01-01T00:00:00Z"),
-            finishedAt = Instant.parse("2024-01-01T00:01:00Z")
-        ),
-        message = null,
-        labels = emptyMap(),
-        annotations = emptyMap(),
-        parameters = emptyMap(),
-        outputs = emptyMap(),
-        raw = JsonObject(emptyMap())
-    )
-    var workflowLogsResult: WorkflowLogs = WorkflowLogs(emptyList())
-
-    override suspend fun listWorkflows(
-        namespace: String,
-        limit: Int,
-        labelSelector: String?,
-        fieldSelector: String?
-    ): List<WorkflowSummary> = listWorkflowsResult
-
-    override suspend fun getWorkflow(namespace: String, name: String): WorkflowDetail = workflowDetailResult
-
-    override suspend fun getWorkflowLogs(
-        namespace: String,
-        workflowName: String,
-        podName: String?,
-        container: String
-    ): WorkflowLogs = workflowLogsResult
-
-    override fun close() = Unit
 }
