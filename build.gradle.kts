@@ -9,10 +9,14 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":argo-client"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.datetime)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.serialization.kotlinx.json)
+    implementation(libs.komok.tech.logging)
+    implementation(libs.komok.tech.config.dotenv)
     implementation(libs.logback.classic)
     implementation(libs.mcp.kotlin.sdk)
 
