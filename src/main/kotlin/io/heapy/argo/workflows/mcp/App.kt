@@ -24,6 +24,7 @@ fun main() = runBlocking {
 
         log.info("Configuration loaded: ${config.server.name} v${config.server.version}")
         log.info("Permissions: destructive=${config.permissions.allowDestructive}, mutations=${config.permissions.allowMutations}")
+        log.info("Effective configuration: ${config.maskSensitiveForLogging()}")
 
         // Create MCP server
         val mcpServer = ArgoWorkflowsMCPServer(config)
@@ -54,5 +55,26 @@ fun main() = runBlocking {
     } catch (e: Exception) {
         log.error("Fatal error during server startup", e)
         exitProcess(1)
+    }
+}
+
+private fun ServerConfig.maskSensitiveForLogging(): ServerConfig = copy(
+    argo = argo.copy(
+        auth = argo.auth.copy(
+            bearerToken = argo.auth.bearerToken.maskToken(),
+            password = argo.auth.password.maskToken(),
+        )
+    )
+)
+
+private fun String?.maskToken(): String? = this?.let { token ->
+    when {
+        token.isEmpty() -> ""
+        token.length <= 4 -> "*".repeat(token.length)
+        else -> buildString {
+            append(token.take(2))
+            append("*".repeat(token.length - 4))
+            append(token.takeLast(2))
+        }
     }
 }
