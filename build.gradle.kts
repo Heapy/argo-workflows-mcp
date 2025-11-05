@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     application
 }
 
@@ -8,6 +9,14 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(ktorLibs.server.netty)
+    implementation(ktorLibs.serialization.kotlinx.json)
+    implementation(libs.logback.classic)
+    implementation(libs.mcp.kotlin.sdk)
+
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 testing {
@@ -25,5 +34,5 @@ java {
 }
 
 application {
-    mainClass = "org.example.AppKt"
+    mainClass = "io.heapy.argo.workflows.mcp.AppKt"
 }
