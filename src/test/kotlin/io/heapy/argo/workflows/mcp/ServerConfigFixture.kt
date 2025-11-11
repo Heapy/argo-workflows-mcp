@@ -28,6 +28,7 @@ val serverConfig = ServerConfig(
         ),
         insecureSkipTlsVerify = false,
         requestTimeoutSeconds = 30,
+        tlsServerName = null,
     ),
     permissions = PermissionsConfig(
         allowDestructive = false,
