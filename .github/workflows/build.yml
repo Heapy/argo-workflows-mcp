@@ -21,7 +21,7 @@ jobs:
           distribution: "corretto"
       - run: ./gradlew test installDist
       - name: Upload distribution artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: "install-dist"
           path: "build/install/argo-workflows-mcp"
