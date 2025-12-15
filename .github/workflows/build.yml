@@ -41,7 +41,7 @@ jobs:
       - name: "Determine version"
         id: version
         run: echo "value=$(./version.sh)" >> "$GITHUB_OUTPUT"
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: "install-dist"
           path: "build/install/argo-workflows-mcp"
