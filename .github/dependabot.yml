@@ -18,6 +18,10 @@ updates:
     labels:
       - "dependencies"
       - "gradle"
+    groups:
+      gradle-all:
+        patterns:
+          - "*"
 
   # Docker dependencies
   - package-ecosystem: "docker"
@@ -33,6 +37,10 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    groups:
+      docker-all:
+        patterns:
+          - "*"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -48,3 +56,7 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    groups:
+      actions-all:
+        patterns:
+          - "*"
