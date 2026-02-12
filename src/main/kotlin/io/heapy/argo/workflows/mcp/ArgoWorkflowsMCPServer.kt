@@ -3,12 +3,27 @@ package io.heapy.argo.workflows.mcp
 import io.heapy.argo.client.ArgoWorkflowsClient
 import io.heapy.argo.client.ArgoWorkflowsHttpClient
 import io.heapy.argo.workflows.mcp.config.ServerConfig
-import io.heapy.argo.workflows.mcp.operations.*
+import io.heapy.argo.workflows.mcp.operations.CronWorkflowOperations
+import io.heapy.argo.workflows.mcp.operations.OperationResult
+import io.heapy.argo.workflows.mcp.operations.TemplateOperations
+import io.heapy.argo.workflows.mcp.operations.WorkflowOperations
 import io.heapy.komok.tech.logging.Logger
-import io.modelcontextprotocol.kotlin.sdk.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
-import kotlinx.serialization.json.*
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import java.io.Closeable
 
 /**
@@ -80,7 +95,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "list_workflows",
             description = "List workflows in specified namespace(s) with optional status filtering",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -104,9 +119,9 @@ class ArgoWorkflowsMCPServer(
                 }
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.contentOrNull
-            val status = request.arguments["status"]?.jsonPrimitive?.contentOrNull
-            val limit = request.arguments["limit"]?.jsonPrimitive?.intOrNull ?: 50
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.contentOrNull
+            val status = request.arguments?.get("status")?.jsonPrimitive?.contentOrNull
+            val limit = request.arguments?.get("limit")?.jsonPrimitive?.intOrNull ?: 50
 
             val result = workflowOps.listWorkflows(namespace, status, limit)
             convertToToolResult(result)
@@ -117,7 +132,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "get_workflow",
             description = "Get detailed information about a specific workflow",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -131,9 +146,9 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "name")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
 
             val result = workflowOps.getWorkflow(namespace, name)
@@ -145,7 +160,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "get_workflow_logs",
             description = "Get logs from a workflow's pods",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -177,14 +192,14 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "workflow_name")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val workflowName = request.arguments["workflow_name"]?.jsonPrimitive?.content
+            val workflowName = request.arguments?.get("workflow_name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("workflow_name is required")))
-            val podName = request.arguments["pod_name"]?.jsonPrimitive?.contentOrNull
-            val container = request.arguments["container"]?.jsonPrimitive?.contentOrNull ?: "main"
-            val search = request.arguments["search"]?.jsonPrimitive?.contentOrNull
-            val maxLines = request.arguments["max_lines"]?.jsonPrimitive?.intOrNull ?: 200
+            val podName = request.arguments?.get("pod_name")?.jsonPrimitive?.contentOrNull
+            val container = request.arguments?.get("container")?.jsonPrimitive?.contentOrNull ?: "main"
+            val search = request.arguments?.get("search")?.jsonPrimitive?.contentOrNull
+            val maxLines = request.arguments?.get("max_lines")?.jsonPrimitive?.intOrNull ?: 200
 
             val result = workflowOps.getWorkflowLogs(namespace, workflowName, podName, container, search, maxLines)
             convertToToolResult(result)
@@ -195,7 +210,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "terminate_workflow",
             description = "Terminate a running workflow (DESTRUCTIVE - requires confirmation)",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -222,14 +237,14 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "name", "reason")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
-            val reason = request.arguments["reason"]?.jsonPrimitive?.content
+            val reason = request.arguments?.get("reason")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("reason is required")))
-            val dryRun = request.arguments["dry_run"]?.jsonPrimitive?.booleanOrNull ?: true
-            val confirmationToken = request.arguments["confirmation_token"]?.jsonPrimitive?.contentOrNull
+            val dryRun = request.arguments?.get("dry_run")?.jsonPrimitive?.booleanOrNull ?: true
+            val confirmationToken = request.arguments?.get("confirmation_token")?.jsonPrimitive?.contentOrNull
 
             val result = workflowOps.terminateWorkflow(namespace, name, reason, dryRun, confirmationToken)
             convertToToolResult(result)
@@ -240,7 +255,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "retry_workflow",
             description = "Retry a failed workflow",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -259,11 +274,11 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "name")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
-            val restartSuccessful = request.arguments["restart_successful"]?.jsonPrimitive?.booleanOrNull ?: false
+            val restartSuccessful = request.arguments?.get("restart_successful")?.jsonPrimitive?.booleanOrNull ?: false
 
             val result = workflowOps.retryWorkflow(namespace, name, restartSuccessful)
             convertToToolResult(result)
@@ -275,7 +290,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "list_cron_workflows",
             description = "List CronWorkflows in namespace(s)",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -288,8 +303,8 @@ class ArgoWorkflowsMCPServer(
                 }
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.contentOrNull
-            val suspended = request.arguments["suspended"]?.jsonPrimitive?.booleanOrNull
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.contentOrNull
+            val suspended = request.arguments?.get("suspended")?.jsonPrimitive?.booleanOrNull
 
             val result = cronOps.listCronWorkflows(namespace, suspended)
             convertToToolResult(result)
@@ -300,7 +315,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "get_cron_workflow",
             description = "Get CronWorkflow details including schedule and last execution",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -314,9 +329,9 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "name")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
 
             val result = cronOps.getCronWorkflow(namespace, name)
@@ -328,7 +343,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "get_cron_history",
             description = "Get execution history of a CronWorkflow",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -347,11 +362,11 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "name")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
-            val limit = request.arguments["limit"]?.jsonPrimitive?.intOrNull ?: 10
+            val limit = request.arguments?.get("limit")?.jsonPrimitive?.intOrNull ?: 10
 
             val result = cronOps.getCronHistory(namespace, name, limit)
             convertToToolResult(result)
@@ -362,7 +377,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "toggle_cron_suspension",
             description = "Suspend or resume a CronWorkflow",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -380,11 +395,11 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "name", "suspend")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
-            val suspend = request.arguments["suspend"]?.jsonPrimitive?.booleanOrNull
+            val suspend = request.arguments?.get("suspend")?.jsonPrimitive?.booleanOrNull
                 ?: return@addTool CallToolResult(content = listOf(TextContent("suspend is required")))
 
             val result = cronOps.toggleCronSuspension(namespace, name, suspend)
@@ -397,7 +412,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "list_workflow_templates",
             description = "List WorkflowTemplates in namespace",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -410,8 +425,8 @@ class ArgoWorkflowsMCPServer(
                 }
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.contentOrNull
-            val labelSelector = request.arguments["label_selector"]?.jsonPrimitive?.contentOrNull
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.contentOrNull
+            val labelSelector = request.arguments?.get("label_selector")?.jsonPrimitive?.contentOrNull
 
             val result = templateOps.listWorkflowTemplates(namespace, labelSelector)
             convertToToolResult(result)
@@ -422,7 +437,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "get_workflow_template",
             description = "Get WorkflowTemplate details",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
@@ -436,9 +451,9 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("namespace", "name")
             )
         ) { request ->
-            val namespace = request.arguments["namespace"]?.jsonPrimitive?.content
+            val namespace = request.arguments?.get("namespace")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("namespace is required")))
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
 
             val result = templateOps.getWorkflowTemplate(namespace, name)
@@ -450,7 +465,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "list_cluster_workflow_templates",
             description = "List ClusterWorkflowTemplates (cluster-scoped)",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("label_selector") {
                         put("type", "string")
@@ -459,7 +474,7 @@ class ArgoWorkflowsMCPServer(
                 }
             )
         ) { request ->
-            val labelSelector = request.arguments["label_selector"]?.jsonPrimitive?.contentOrNull
+            val labelSelector = request.arguments?.get("label_selector")?.jsonPrimitive?.contentOrNull
 
             val result = templateOps.listClusterWorkflowTemplates(labelSelector)
             convertToToolResult(result)
@@ -470,7 +485,7 @@ class ArgoWorkflowsMCPServer(
         server.addTool(
             name = "get_cluster_workflow_template",
             description = "Get ClusterWorkflowTemplate details",
-            inputSchema = Tool.Input(
+            inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("name") {
                         put("type", "string")
@@ -480,7 +495,7 @@ class ArgoWorkflowsMCPServer(
                 required = listOf("name")
             )
         ) { request ->
-            val name = request.arguments["name"]?.jsonPrimitive?.content
+            val name = request.arguments?.get("name")?.jsonPrimitive?.content
                 ?: return@addTool CallToolResult(content = listOf(TextContent("name is required")))
 
             val result = templateOps.getClusterWorkflowTemplate(name)
@@ -509,7 +524,7 @@ class ArgoWorkflowsMCPServer(
             is OperationResult.DryRun -> {
                 val text = buildString {
                     appendLine("DRY RUN MODE")
-                    appendLine("=" .repeat(50))
+                    appendLine("=".repeat(50))
                     appendLine(result.preview)
                     appendLine()
                     appendLine(result.instructions)
