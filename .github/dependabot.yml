@@ -15,9 +15,6 @@ updates:
       prefix: "gradle"
       prefix-development: "gradle"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "gradle"
     groups:
       gradle-all:
         patterns:
@@ -34,9 +31,6 @@ updates:
     commit-message:
       prefix: "docker"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "docker"
     groups:
       docker-all:
         patterns:
@@ -53,9 +47,6 @@ updates:
     commit-message:
       prefix: "actions"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "github-actions"
     groups:
       actions-all:
         patterns:
