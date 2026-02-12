@@ -17,6 +17,7 @@ data class ServerConfig(
     val logging: LoggingConfig,
 ) {
     companion object {
+        @Suppress("CyclomaticComplexMethod")
         fun fromEnvironment(
             environmentOverrides: Map<String, String> = emptyMap(),
         ): ServerConfig {
@@ -43,12 +44,12 @@ data class ServerConfig(
                     auth = ArgoAuthConfig(
                         bearerToken = env["ARGO_TOKEN"],
                         username = env["ARGO_USERNAME"],
-                        password = env["ARGO_PASSWORD"]
+                        password = env["ARGO_PASSWORD"],
                     ),
                     insecureSkipTlsVerify = env["ARGO_INSECURE_SKIP_TLS_VERIFY"]?.toBoolean()
                         ?: false,
                     requestTimeoutSeconds = env["ARGO_REQUEST_TIMEOUT_SECONDS"]?.toLongOrNull()
-                        ?: 30,
+                        ?: DEFAULT_TIMEOUT_SECONDS,
                     tlsServerName = env["ARGO_TLS_SERVER_NAME"],
                 ),
                 permissions = PermissionsConfig(
@@ -56,21 +57,29 @@ data class ServerConfig(
                     allowMutations = env["MCP_ALLOW_MUTATIONS"]?.toBoolean() ?: false,
                     requireConfirmation = env["MCP_REQUIRE_CONFIRMATION"]?.toBoolean() ?: true,
                     namespaces = NamespaceFilter(
-                        allow = env["MCP_NAMESPACES_ALLOW"]?.split(",")?.map { it.trim() }
+                        allow = env["MCP_NAMESPACES_ALLOW"]
+                            ?.run {
+                                split(",").map { it.trim() }.ifEmpty { listOf("*") }
+                            }
                             ?: listOf("*"),
-                        deny = env["MCP_NAMESPACES_DENY"]?.split(",")?.map { it.trim() }
-                            ?: emptyList(),
-                    )
+                        deny = env["MCP_NAMESPACES_DENY"]
+                            ?.run {
+                                split(",").map { it.trim() }
+                            }
+                            .orEmpty(),
+                    ),
                 ),
                 logging = LoggingConfig(
                     audit = env["MCP_AUDIT_ENABLED"]?.toBoolean() ?: true,
                     auditFile = env["MCP_AUDIT_FILE"] ?: "./mcp-audit.log",
                     level = env["MCP_LOG_LEVEL"] ?: "info",
-                )
+                ),
             )
         }
     }
 }
+
+private const val DEFAULT_TIMEOUT_SECONDS = 30L
 
 @Serializable
 data class ServerInfo(

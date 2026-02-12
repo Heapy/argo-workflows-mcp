@@ -5,8 +5,8 @@ import io.heapy.argo.client.WorkflowLogs
 import io.heapy.argo.client.WorkflowSummary
 import io.heapy.argo.workflows.mcp.config.ServerConfig
 import io.heapy.komok.tech.logging.Logger
-import kotlin.math.absoluteValue
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 /**
@@ -91,18 +91,24 @@ class WorkflowOperations(
                 "duration" to (duration ?: "n/a")
             )
 
-            detail.message?.takeIf { it.isNotBlank() }?.let { data["message"] = it }
+            detail.message
+                ?.takeIf { it.isNotBlank() }
+                ?.let { data["message"] = it }
             if (detail.labels.isNotEmpty()) {
-                data["labels"] = detail.labels.entries.joinToString(", ") { (k, v) -> "$k=$v" }
+                data["labels"] = detail.labels.entries
+                    .joinToString(", ") { (k, v) -> "$k=$v" }
             }
             if (detail.annotations.isNotEmpty()) {
-                data["annotations"] = detail.annotations.entries.joinToString(", ") { (k, v) -> "$k=$v" }
+                data["annotations"] = detail.annotations.entries
+                    .joinToString(", ") { (k, v) -> "$k=$v" }
             }
             if (detail.parameters.isNotEmpty()) {
-                data["parameters"] = detail.parameters.entries.joinToString("\n") { (k, v) -> "$k = $v" }
+                data["parameters"] = detail.parameters.entries
+                    .joinToString("\n") { (k, v) -> "$k = $v" }
             }
             if (detail.outputs.isNotEmpty()) {
-                data["outputs"] = detail.outputs.entries.joinToString("\n") { (k, v) -> "$k = $v" }
+                data["outputs"] = detail.outputs.entries
+                    .joinToString("\n") { (k, v) -> "$k = $v" }
             }
 
             OperationResult.Success(
@@ -123,6 +129,7 @@ class WorkflowOperations(
     /**
      * Get workflow logs
      */
+    @Suppress("LongParameterList")
     suspend fun getWorkflowLogs(
         namespace: String,
         workflowName: String,
@@ -143,7 +150,12 @@ class WorkflowOperations(
         )
 
         return runCatching {
-            val logs = argoClient.getWorkflowLogs(targetNamespace, workflowName, podName, container)
+            val logs = argoClient.getWorkflowLogs(
+                namespace = targetNamespace,
+                workflowName = workflowName,
+                podName = podName,
+                container = container,
+            )
             val formatting = logs.formatForDisplay(search, maxLines)
 
             val data = mutableMapOf(
@@ -192,7 +204,7 @@ class WorkflowOperations(
     /**
      * Terminate workflow (requires confirmation)
      */
-    suspend fun terminateWorkflow(
+    fun terminateWorkflow(
         namespace: String,
         name: String,
         reason: String,
@@ -201,15 +213,13 @@ class WorkflowOperations(
     ): OperationResult {
         log.info("Terminating workflow: namespace=$namespace, name=$name, reason=$reason, dryRun=$dryRun")
 
-        if (!config.permissions.allowDestructive) {
-            return OperationResult.Error(
+        return when {
+            !config.permissions.allowDestructive -> OperationResult.Error(
                 message = "Destructive operations are not allowed by configuration",
                 code = "PERMISSION_DENIED"
             )
-        }
 
-        if (dryRun) {
-            return OperationResult.DryRun(
+            dryRun -> OperationResult.DryRun(
                 preview = """
                     Mock: Would terminate workflow
                     - Namespace: $namespace
@@ -220,30 +230,28 @@ class WorkflowOperations(
                 """.trimIndent(),
                 instructions = "Call again with dryRun=false and confirmationToken='mock-token-123'"
             )
-        }
 
-        if (config.permissions.requireConfirmation && confirmationToken == null) {
-            return OperationResult.NeedsConfirmation(
-                preview = "Mock: Workflow $name will be terminated",
-                token = "mock-token-123"
+            config.permissions.requireConfirmation && confirmationToken == null ->
+                OperationResult.NeedsConfirmation(
+                    preview = "Mock: Workflow $name will be terminated",
+                    token = "mock-token-123"
+                )
+
+            else -> OperationResult.Success(
+                message = "Mock: Workflow terminated successfully",
+                data = mapOf(
+                    "namespace" to namespace,
+                    "workflow" to name,
+                    "action" to "terminated"
+                )
             )
         }
-
-        // Mock execution
-        return OperationResult.Success(
-            message = "Mock: Workflow terminated successfully",
-            data = mapOf(
-                "namespace" to namespace,
-                "workflow" to name,
-                "action" to "terminated"
-            )
-        )
     }
 
     /**
      * Retry workflow
      */
-    suspend fun retryWorkflow(
+    fun retryWorkflow(
         namespace: String,
         name: String,
         restartSuccessful: Boolean = false
@@ -281,12 +289,19 @@ private fun WorkflowSummary.toDisplayString(): String = buildString {
     formatDuration(startedAt, finishedAt)?.let { append(" duration=$it") }
 }
 
+@Suppress("CyclomaticComplexMethod")
 private fun WorkflowLogs.formatForDisplay(
     search: String?,
     maxLines: Int
 ): LogFormatting {
     if (entries.isEmpty()) {
-        return LogFormatting("", note = null, totalLines = 0, matchedLines = 0, returnedLines = 0)
+        return LogFormatting(
+            rendered = "",
+            note = null,
+            totalLines = 0,
+            matchedLines = 0,
+            returnedLines = 0,
+        )
     }
 
     val sanitizedSearch = search?.takeIf { it.isNotBlank() }
@@ -304,7 +319,8 @@ private fun WorkflowLogs.formatForDisplay(
     val truncated = limit != null && matched > limit
 
     val rendered = subset.joinToString("\n") { entry ->
-        val podPrefix = entry.podName?.let { "[$it] " } ?: ""
+        val podPrefix = entry.podName
+            ?.let { "[$it] " }.orEmpty()
         "$podPrefix${entry.content}"
     }
 
@@ -335,24 +351,19 @@ private fun WorkflowLogs.formatForDisplay(
 
 private fun formatDuration(startedAt: Instant?, finishedAt: Instant?): String? {
     val start = startedAt ?: return null
-    val end = finishedAt ?: Clock.System.now()
-    val duration = end - start
-    if (duration.inWholeSeconds < 0) return null
-
-    val totalSeconds = duration.inWholeSeconds
-    val days = totalSeconds / 86_400
-    val hours = (totalSeconds % 86_400) / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = (totalSeconds % 60).absoluteValue
-
-    val parts = mutableListOf<String>()
-    if (days > 0) parts += "${days}d"
-    if (hours > 0) parts += "${hours}h"
-    if (minutes > 0) parts += "${minutes}m"
-    if (seconds > 0 || parts.isEmpty()) parts += "${seconds}s"
-
-    return parts.joinToString(" ")
+    val duration = (finishedAt ?: Clock.System.now()) - start
+    return duration.takeIf { !it.isNegative() }?.formatParts()
 }
+
+private fun Duration.formatParts(): String =
+    toComponents { days, hours, minutes, seconds, _ ->
+        buildList {
+            if (days > 0L) add("${days}d")
+            if (hours > 0) add("${hours}h")
+            if (minutes > 0) add("${minutes}m")
+            if (seconds > 0 || isEmpty()) add("${seconds}s")
+        }.joinToString(" ")
+    }
 
 private fun formatInstant(instant: Instant?): String =
     instant?.toString() ?: "n/a"

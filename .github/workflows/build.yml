@@ -19,7 +19,7 @@ jobs:
         with:
           java-version: "25"
           distribution: "corretto"
-      - run: ./gradlew test installDist
+      - run: ./gradlew check installDist
       - name: Upload distribution artifact
         uses: actions/upload-artifact@v6
         with:

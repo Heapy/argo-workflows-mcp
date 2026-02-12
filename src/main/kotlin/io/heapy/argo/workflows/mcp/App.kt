@@ -1,6 +1,6 @@
 package io.heapy.argo.workflows.mcp
 
-import io.heapy.argo.workflows.mcp.config.*
+import io.heapy.argo.workflows.mcp.config.ServerConfig
 import io.heapy.komok.tech.logging.logger
 import io.modelcontextprotocol.kotlin.sdk.server.StdioServerTransport
 import io.ktor.utils.io.streams.asInput
@@ -23,7 +23,11 @@ fun main() = runBlocking {
         val config = ServerConfig.fromEnvironment()
 
         log.info("Configuration loaded: ${config.server.name} v${config.server.version}")
-        log.info("Permissions: destructive=${config.permissions.allowDestructive}, mutations=${config.permissions.allowMutations}")
+        log.info(
+            "Permissions: destructive={}, mutations={}",
+            config.permissions.allowDestructive,
+            config.permissions.allowMutations,
+        )
         log.info("Effective configuration: ${config.maskSensitiveForLogging()}")
 
         // Create MCP server
@@ -41,7 +45,7 @@ fun main() = runBlocking {
             log.info("Server is ready to accept MCP connections")
 
             // Connect and run server
-            val session = server.connect(transport)
+            val session = server.createSession(transport)
             val done = Job()
             session.onClose {
                 done.complete()
@@ -52,17 +56,21 @@ fun main() = runBlocking {
         }
 
         log.info("Server stopped")
-    } catch (e: Exception) {
+    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
         log.error("Fatal error during server startup", e)
         exitProcess(1)
     }
 }
 
+private const val MIN_TOKEN_VISIBLE_LENGTH = 4
+
 private fun ServerConfig.maskSensitiveForLogging(): ServerConfig = copy(
     argo = argo.copy(
         auth = argo.auth.copy(
-            bearerToken = argo.auth.bearerToken.maskToken(),
-            password = argo.auth.password.maskToken(),
+            bearerToken = argo.auth.bearerToken
+                .maskToken(),
+            password = argo.auth.password
+                .maskToken(),
         )
     )
 )
@@ -70,10 +78,10 @@ private fun ServerConfig.maskSensitiveForLogging(): ServerConfig = copy(
 private fun String?.maskToken(): String? = this?.let { token ->
     when {
         token.isEmpty() -> ""
-        token.length <= 4 -> "*".repeat(token.length)
+        token.length <= MIN_TOKEN_VISIBLE_LENGTH -> "*".repeat(token.length)
         else -> buildString {
             append(token.take(2))
-            append("*".repeat(token.length - 4))
+            append("*".repeat(token.length - MIN_TOKEN_VISIBLE_LENGTH))
             append(token.takeLast(2))
         }
     }

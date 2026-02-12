@@ -14,7 +14,7 @@ class CronWorkflowOperations(
     /**
      * List CronWorkflows
      */
-    suspend fun listCronWorkflows(
+    fun listCronWorkflows(
         namespace: String? = null,
         suspended: Boolean? = null
     ): OperationResult {
@@ -32,7 +32,7 @@ class CronWorkflowOperations(
     /**
      * Get CronWorkflow details
      */
-    suspend fun getCronWorkflow(
+    fun getCronWorkflow(
         namespace: String,
         name: String
     ): OperationResult {
@@ -54,7 +54,7 @@ class CronWorkflowOperations(
     /**
      * Get CronWorkflow execution history
      */
-    suspend fun getCronHistory(
+    fun getCronHistory(
         namespace: String,
         name: String,
         limit: Int = 10
@@ -73,7 +73,7 @@ class CronWorkflowOperations(
     /**
      * Suspend or resume CronWorkflow
      */
-    suspend fun toggleCronSuspension(
+    fun toggleCronSuspension(
         namespace: String,
         name: String,
         suspend: Boolean

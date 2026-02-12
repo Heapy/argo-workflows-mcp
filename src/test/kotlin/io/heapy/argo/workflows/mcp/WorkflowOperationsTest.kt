@@ -4,10 +4,13 @@ import io.heapy.argo.client.WorkflowDetail
 import io.heapy.argo.client.WorkflowLogEntry
 import io.heapy.argo.client.WorkflowLogs
 import io.heapy.argo.client.WorkflowSummary
-import io.heapy.argo.workflows.mcp.operations.*
+import io.heapy.argo.workflows.mcp.operations.OperationResult
+import io.heapy.argo.workflows.mcp.operations.WorkflowOperations
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.time.Instant
 

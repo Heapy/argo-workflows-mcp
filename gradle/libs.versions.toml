@@ -14,7 +14,9 @@ komok-tech-logging = { module = "io.heapy.komok:komok-tech-logging", version.ref
 komok-tech-config-dotenv = { module = "io.heapy.komok:komok-tech-config-dotenv", version.ref = "komok-tech" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 mcp-kotlin-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp" }
+detekt-rules-ktlint-wrapper = { module = "dev.detekt:detekt-rules-ktlint-wrapper", version = "2.0.0-alpha.2" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+detekt = { id = "dev.detekt", version = "2.0.0-alpha.2" }

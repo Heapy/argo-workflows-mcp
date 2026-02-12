@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
     application
 }
 
@@ -21,12 +22,14 @@ dependencies {
     implementation(libs.mcp.kotlin.sdk)
 
     testImplementation(libs.kotlinx.coroutines.test)
+
+    detektPlugins(libs.detekt.rules.ktlint.wrapper)
 }
 
 testing {
     suites {
         val test by getting(JvmTestSuite::class) {
-            useJUnitJupiter("6.0.1")
+            useJUnitJupiter("6.0.2")
         }
     }
 }

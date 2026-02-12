@@ -11,7 +11,7 @@ class TemplateOperations {
     /**
      * List WorkflowTemplates
      */
-    suspend fun listWorkflowTemplates(
+    fun listWorkflowTemplates(
         namespace: String? = null,
         labelSelector: String? = null
     ): OperationResult {
@@ -29,7 +29,7 @@ class TemplateOperations {
     /**
      * Get WorkflowTemplate details
      */
-    suspend fun getWorkflowTemplate(
+    fun getWorkflowTemplate(
         namespace: String,
         name: String
     ): OperationResult {
@@ -49,7 +49,7 @@ class TemplateOperations {
     /**
      * List ClusterWorkflowTemplates
      */
-    suspend fun listClusterWorkflowTemplates(
+    fun listClusterWorkflowTemplates(
         labelSelector: String? = null
     ): OperationResult {
         log.info("Listing cluster workflow templates: labelSelector=$labelSelector")
@@ -66,7 +66,7 @@ class TemplateOperations {
     /**
      * Get ClusterWorkflowTemplate details
      */
-    suspend fun getClusterWorkflowTemplate(
+    fun getClusterWorkflowTemplate(
         name: String
     ): OperationResult {
         log.info("Getting cluster workflow template: name=$name")

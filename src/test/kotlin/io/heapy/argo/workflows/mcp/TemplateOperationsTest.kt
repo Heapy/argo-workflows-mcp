@@ -3,7 +3,9 @@ package io.heapy.argo.workflows.mcp
 import io.heapy.argo.workflows.mcp.operations.OperationResult
 import io.heapy.argo.workflows.mcp.operations.TemplateOperations
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class TemplateOperationsTest {
