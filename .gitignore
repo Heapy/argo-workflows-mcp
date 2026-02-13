@@ -12,3 +12,6 @@ build
 
 # Storing Usage example for local development
 .example
+
+# Git worktrees
+.worktrees
