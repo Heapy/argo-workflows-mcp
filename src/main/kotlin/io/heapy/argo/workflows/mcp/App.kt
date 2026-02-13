@@ -1,88 +1,52 @@
 package io.heapy.argo.workflows.mcp
 
 import io.heapy.argo.workflows.mcp.config.ServerConfig
+import io.heapy.argo.workflows.mcp.db.DatabaseFactory
+import io.heapy.argo.workflows.mcp.repository.AuditLogRepository
+import io.heapy.argo.workflows.mcp.repository.ConnectionRepository
+import io.heapy.argo.workflows.mcp.repository.SettingsRepository
+import io.heapy.argo.workflows.mcp.web.routes.apiRoutes
+import io.heapy.argo.workflows.mcp.web.routes.uiRoutes
 import io.heapy.komok.tech.logging.logger
-import io.modelcontextprotocol.kotlin.sdk.server.StdioServerTransport
-import io.ktor.utils.io.streams.asInput
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.runBlocking
-import kotlinx.io.asSink
-import kotlinx.io.buffered
-import kotlin.system.exitProcess
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.routing.routing
+import io.ktor.server.sse.SSE
+import io.ktor.server.application.install
+import io.modelcontextprotocol.kotlin.sdk.server.mcp
 
-/**
- * Main entry point for Argo Workflows MCP Server
- */
-fun main() = runBlocking {
+fun main() {
     val log = logger {}
+    val config = ServerConfig()
 
-    try {
-        log.info("Starting Argo Workflows MCP Server...")
+    log.info("Starting Argo Workflows MCP Server...")
+    log.info("DB path: {}", config.dbPath)
 
-        // Load configuration from environment variables
-        val config = ServerConfig.fromEnvironment()
+    val database = DatabaseFactory.init(config.dbPath)
+    val connectionRepo = ConnectionRepository(database)
+    val settingsRepo = SettingsRepository(database)
+    val auditLogRepo = AuditLogRepository(database)
 
-        log.info("Configuration loaded: ${config.server.name} v${config.server.version}")
-        log.info(
-            "Permissions: destructive={}, mutations={}",
-            config.permissions.allowDestructive,
-            config.permissions.allowMutations,
-        )
-        log.info("Effective configuration: ${config.maskSensitiveForLogging()}")
-
-        // Create MCP server
-        val mcpServer = ArgoWorkflowsMCPServer(config)
-        try {
-            val server = mcpServer.createServer()
-
-            // Use STDIO transport (standard for MCP servers)
-            val transport = StdioServerTransport(
-                System.`in`.asInput(),
-                System.out.asSink().buffered()
-            )
-
-            log.info("Server starting with STDIO transport...")
-            log.info("Server is ready to accept MCP connections")
-
-            // Connect and run server
-            val session = server.createSession(transport)
-            val done = Job()
-            session.onClose {
-                done.complete()
-            }
-            done.join()
-        } finally {
-            mcpServer.close()
-        }
-
-        log.info("Server stopped")
-    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-        log.error("Fatal error during server startup", e)
-        exitProcess(1)
-    }
-}
-
-private const val MIN_TOKEN_VISIBLE_LENGTH = 4
-
-private fun ServerConfig.maskSensitiveForLogging(): ServerConfig = copy(
-    argo = argo.copy(
-        auth = argo.auth.copy(
-            bearerToken = argo.auth.bearerToken
-                .maskToken(),
-            password = argo.auth.password
-                .maskToken(),
-        )
+    val mcpServer = ArgoWorkflowsMCPServer(
+        connectionRepo = connectionRepo,
+        settingsRepo = settingsRepo,
+        auditLogRepo = auditLogRepo,
+        serverName = config.serverName,
+        serverVersion = config.serverVersion,
     )
-)
 
-private fun String?.maskToken(): String? = this?.let { token ->
-    when {
-        token.isEmpty() -> ""
-        token.length <= MIN_TOKEN_VISIBLE_LENGTH -> "*".repeat(token.length)
-        else -> buildString {
-            append(token.take(2))
-            append("*".repeat(token.length - MIN_TOKEN_VISIBLE_LENGTH))
-            append(token.takeLast(2))
+    val server = mcpServer.createServer()
+
+    log.info("Starting server on {}:{}", config.host, config.port)
+
+    embeddedServer(CIO, host = config.host, port = config.port) {
+        install(SSE)
+        mcp {
+            server
         }
-    }
+        routing {
+            uiRoutes()
+            apiRoutes(connectionRepo, settingsRepo, auditLogRepo)
+        }
+    }.start(wait = true)
 }

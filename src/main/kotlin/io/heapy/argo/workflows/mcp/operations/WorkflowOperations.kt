@@ -3,34 +3,27 @@ package io.heapy.argo.workflows.mcp.operations
 import io.heapy.argo.client.ArgoWorkflowsClient
 import io.heapy.argo.client.WorkflowLogs
 import io.heapy.argo.client.WorkflowSummary
-import io.heapy.argo.workflows.mcp.config.ServerConfig
 import io.heapy.komok.tech.logging.Logger
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-/**
- * Workflow management operations
- */
 class WorkflowOperations(
-    private val config: ServerConfig,
-    private val argoClient: ArgoWorkflowsClient
+    private val defaultNamespace: String,
+    private val allowDestructive: Boolean,
+    private val allowMutations: Boolean,
+    private val requireConfirmation: Boolean,
+    private val argoClient: ArgoWorkflowsClient,
 ) {
     private companion object : Logger()
 
-    /**
-     * Normalise namespace to use configuration default when missing.
-     */
     private fun resolveNamespace(namespace: String?): String =
-        namespace?.takeIf { it.isNotBlank() } ?: config.argo.defaultNamespace
+        namespace?.takeIf { it.isNotBlank() } ?: defaultNamespace
 
-    /**
-     * List workflows in namespace(s)
-     */
     suspend fun listWorkflows(
         namespace: String? = null,
         status: String? = null,
-        limit: Int = 50
+        limit: Int = 50,
     ): OperationResult {
         val targetNamespace = resolveNamespace(namespace)
         log.info("Listing workflows: namespace=$targetNamespace, status=$status, limit=$limit")
@@ -50,7 +43,7 @@ class WorkflowOperations(
 
             val data = mutableMapOf(
                 "namespace" to targetNamespace,
-                "count" to filtered.size.toString()
+                "count" to filtered.size.toString(),
             )
             status?.let { data["status_filter"] = it }
             if (filtered.isNotEmpty()) {
@@ -59,7 +52,7 @@ class WorkflowOperations(
 
             OperationResult.Success(
                 message = message,
-                data = data
+                data = data,
             )
         }.getOrElse { error ->
             log.error("Failed to list workflows for namespace={}", targetNamespace, error)
@@ -67,12 +60,9 @@ class WorkflowOperations(
         }
     }
 
-    /**
-     * Get workflow details
-     */
     suspend fun getWorkflow(
         namespace: String,
-        name: String
+        name: String,
     ): OperationResult {
         val targetNamespace = resolveNamespace(namespace)
         log.info("Getting workflow: namespace=$targetNamespace, name=$name")
@@ -88,7 +78,7 @@ class WorkflowOperations(
                 "progress" to (summary.progress ?: "n/a"),
                 "started_at" to formatInstant(summary.startedAt),
                 "finished_at" to formatInstant(summary.finishedAt),
-                "duration" to (duration ?: "n/a")
+                "duration" to (duration ?: "n/a"),
             )
 
             detail.message
@@ -113,22 +103,19 @@ class WorkflowOperations(
 
             OperationResult.Success(
                 message = "Workflow '${summary.name}' status: ${summary.phase ?: "Unknown"}",
-                data = data
+                data = data,
             )
         }.getOrElse { error ->
             log.error(
                 "Failed to get workflow details namespace={}, name={}",
                 targetNamespace,
                 name,
-                error
+                error,
             )
             error.toOperationError("retrieve workflow details")
         }
     }
 
-    /**
-     * Get workflow logs
-     */
     @Suppress("LongParameterList")
     suspend fun getWorkflowLogs(
         namespace: String,
@@ -136,7 +123,7 @@ class WorkflowOperations(
         podName: String? = null,
         container: String = "main",
         search: String? = null,
-        maxLines: Int = DEFAULT_LOG_LINE_LIMIT
+        maxLines: Int = DEFAULT_LOG_LINE_LIMIT,
     ): OperationResult {
         val targetNamespace = resolveNamespace(namespace)
         log.info(
@@ -146,7 +133,7 @@ class WorkflowOperations(
             podName,
             container,
             search,
-            maxLines
+            maxLines,
         )
 
         return runCatching {
@@ -165,7 +152,7 @@ class WorkflowOperations(
                 "total_lines" to formatting.totalLines.toString(),
                 "matching_lines" to formatting.matchedLines.toString(),
                 "returned_lines" to formatting.returnedLines.toString(),
-                "logs" to formatting.rendered
+                "logs" to formatting.rendered,
             )
             podName?.let { data["pod"] = it }
             search?.let { data["search_term"] = it }
@@ -188,35 +175,32 @@ class WorkflowOperations(
                     else ->
                         "Retrieved ${formatting.returnedLines} of ${formatting.totalLines} log line(s) for '$workflowName'"
                 },
-                data = data
+                data = data,
             )
         }.getOrElse { error ->
             log.error(
                 "Failed to fetch workflow logs namespace={}, workflow={}",
                 targetNamespace,
                 workflowName,
-                error
+                error,
             )
             error.toOperationError("fetch workflow logs")
         }
     }
 
-    /**
-     * Terminate workflow (requires confirmation)
-     */
     fun terminateWorkflow(
         namespace: String,
         name: String,
         reason: String,
         dryRun: Boolean = true,
-        confirmationToken: String? = null
+        confirmationToken: String? = null,
     ): OperationResult {
         log.info("Terminating workflow: namespace=$namespace, name=$name, reason=$reason, dryRun=$dryRun")
 
         return when {
-            !config.permissions.allowDestructive -> OperationResult.Error(
+            !allowDestructive -> OperationResult.Error(
                 message = "Destructive operations are not allowed by configuration",
-                code = "PERMISSION_DENIED"
+                code = "PERMISSION_DENIED",
             )
 
             dryRun -> OperationResult.DryRun(
@@ -228,13 +212,13 @@ class WorkflowOperations(
                     - Running pods: 3
                     - Impact: All pods will be stopped immediately
                 """.trimIndent(),
-                instructions = "Call again with dryRun=false and confirmationToken='mock-token-123'"
+                instructions = "Call again with dryRun=false and confirmationToken='mock-token-123'",
             )
 
-            config.permissions.requireConfirmation && confirmationToken == null ->
+            requireConfirmation && confirmationToken == null ->
                 OperationResult.NeedsConfirmation(
                     preview = "Mock: Workflow $name will be terminated",
-                    token = "mock-token-123"
+                    token = "mock-token-123",
                 )
 
             else -> OperationResult.Success(
@@ -242,26 +226,23 @@ class WorkflowOperations(
                 data = mapOf(
                     "namespace" to namespace,
                     "workflow" to name,
-                    "action" to "terminated"
-                )
+                    "action" to "terminated",
+                ),
             )
         }
     }
 
-    /**
-     * Retry workflow
-     */
     fun retryWorkflow(
         namespace: String,
         name: String,
-        restartSuccessful: Boolean = false
+        restartSuccessful: Boolean = false,
     ): OperationResult {
         log.info("Retrying workflow: namespace=$namespace, name=$name, restartSuccessful=$restartSuccessful")
 
-        if (!config.permissions.allowMutations) {
+        if (!allowMutations) {
             return OperationResult.Error(
                 message = "Mutation operations are not allowed by configuration",
-                code = "PERMISSION_DENIED"
+                code = "PERMISSION_DENIED",
             )
         }
 
@@ -270,8 +251,8 @@ class WorkflowOperations(
             data = mapOf(
                 "namespace" to namespace,
                 "originalWorkflow" to name,
-                "newWorkflow" to "$name-retry-1"
-            )
+                "newWorkflow" to "$name-retry-1",
+            ),
         )
     }
 }
@@ -292,7 +273,7 @@ private fun WorkflowSummary.toDisplayString(): String = buildString {
 @Suppress("CyclomaticComplexMethod")
 private fun WorkflowLogs.formatForDisplay(
     search: String?,
-    maxLines: Int
+    maxLines: Int,
 ): LogFormatting {
     if (entries.isEmpty()) {
         return LogFormatting(
@@ -345,7 +326,7 @@ private fun WorkflowLogs.formatForDisplay(
         note = note,
         totalLines = total,
         matchedLines = matched,
-        returnedLines = subset.size
+        returnedLines = subset.size,
     )
 }
 
@@ -372,7 +353,7 @@ private fun Throwable.toOperationError(action: String): OperationResult.Error {
     val detail = message?.takeIf { it.isNotBlank() } ?: this::class.simpleName ?: "unknown error"
     return OperationResult.Error(
         message = "Failed to $action: $detail",
-        code = ERROR_CODE_ARGO_API
+        code = ERROR_CODE_ARGO_API,
     )
 }
 
@@ -381,5 +362,5 @@ private data class LogFormatting(
     val note: String?,
     val totalLines: Int,
     val matchedLines: Int,
-    val returnedLines: Int
+    val returnedLines: Int,
 )

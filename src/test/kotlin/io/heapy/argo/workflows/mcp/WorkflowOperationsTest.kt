@@ -15,6 +15,19 @@ import org.junit.jupiter.api.Test
 import kotlin.time.Instant
 
 class WorkflowOperationsTest {
+    private fun createOps(
+        fakeClient: FakeArgoWorkflowsClient = FakeArgoWorkflowsClient(),
+        allowDestructive: Boolean = false,
+        allowMutations: Boolean = false,
+        requireConfirmation: Boolean = true,
+    ) = WorkflowOperations(
+        defaultNamespace = "default",
+        allowDestructive = allowDestructive,
+        allowMutations = allowMutations,
+        requireConfirmation = requireConfirmation,
+        argoClient = fakeClient,
+    )
+
     @Test
     fun `listWorkflows filters by status`() = runTest {
         val fakeClient = FakeArgoWorkflowsClient().apply {
@@ -25,7 +38,7 @@ class WorkflowOperationsTest {
                     phase = "Running",
                     progress = "1/3",
                     startedAt = Instant.parse("2024-01-01T00:00:00Z"),
-                    finishedAt = null
+                    finishedAt = null,
                 ),
                 WorkflowSummary(
                     name = "wf-succeeded",
@@ -33,11 +46,11 @@ class WorkflowOperationsTest {
                     phase = "Succeeded",
                     progress = "3/3",
                     startedAt = Instant.parse("2024-01-01T01:00:00Z"),
-                    finishedAt = Instant.parse("2024-01-01T01:05:00Z")
-                )
+                    finishedAt = Instant.parse("2024-01-01T01:05:00Z"),
+                ),
             )
         }
-        val ops = WorkflowOperations(serverConfig, fakeClient)
+        val ops = createOps(fakeClient)
 
         val result = ops.listWorkflows(namespace = "default", status = "Succeeded", limit = 10)
 
@@ -58,19 +71,19 @@ class WorkflowOperationsTest {
                 phase = "Running",
                 progress = "2/5",
                 startedAt = Instant.parse("2024-01-01T00:00:00Z"),
-                finishedAt = null
+                finishedAt = null,
             ),
             message = "Workflow progressing",
             labels = mapOf("app" to "demo"),
             annotations = mapOf("owner" to "team-a"),
             parameters = mapOf("image" to "alpine:3.19"),
             outputs = mapOf("result" to "pending"),
-            raw = JsonObject(emptyMap())
+            raw = JsonObject(emptyMap()),
         )
         val fakeClient = FakeArgoWorkflowsClient().apply {
             workflowDetailResult = detail
         }
-        val ops = WorkflowOperations(serverConfig, fakeClient)
+        val ops = createOps(fakeClient)
 
         val result = ops.getWorkflow(namespace = "default", name = "test-workflow")
 
@@ -90,13 +103,13 @@ class WorkflowOperationsTest {
             entries = listOf(
                 WorkflowLogEntry("pod-1", "line one"),
                 WorkflowLogEntry("pod-1", "line two"),
-                WorkflowLogEntry("pod-2", "line three")
-            )
+                WorkflowLogEntry("pod-2", "line three"),
+            ),
         )
         val fakeClient = FakeArgoWorkflowsClient().apply {
             workflowLogsResult = logs
         }
-        val ops = WorkflowOperations(serverConfig, fakeClient)
+        val ops = createOps(fakeClient)
 
         val result = ops.getWorkflowLogs(namespace = "default", workflowName = "demo", podName = null)
 
@@ -117,19 +130,19 @@ class WorkflowOperationsTest {
                 WorkflowLogEntry("pod-1", "campaign count: 10"),
                 WorkflowLogEntry("pod-1", "progress update"),
                 WorkflowLogEntry("pod-2", "campaign count: 12"),
-                WorkflowLogEntry("pod-2", "error: failed to sync")
-            )
+                WorkflowLogEntry("pod-2", "error: failed to sync"),
+            ),
         )
         val fakeClient = FakeArgoWorkflowsClient().apply {
             workflowLogsResult = logs
         }
-        val ops = WorkflowOperations(serverConfig, fakeClient)
+        val ops = createOps(fakeClient)
 
         val result = ops.getWorkflowLogs(
             namespace = "default",
             workflowName = "demo",
             search = "campaign",
-            maxLines = 1
+            maxLines = 1,
         )
 
         assertTrue(result is OperationResult.Success)
@@ -145,13 +158,13 @@ class WorkflowOperationsTest {
 
     @Test
     fun `terminateWorkflow requires confirmation when destructive operations disabled`() = runTest {
-        val ops = WorkflowOperations(serverConfig, FakeArgoWorkflowsClient())
+        val ops = createOps()
 
         val result = ops.terminateWorkflow(
             namespace = "default",
             name = "test-workflow",
             reason = "test",
-            dryRun = false
+            dryRun = false,
         )
 
         assertTrue(result is OperationResult.Error)
@@ -161,16 +174,13 @@ class WorkflowOperationsTest {
 
     @Test
     fun `terminateWorkflow shows dry run by default`() = runTest {
-        val allowDestructiveConfig = serverConfig.copy(
-            permissions = serverConfig.permissions.copy(allowDestructive = true)
-        )
-        val ops = WorkflowOperations(allowDestructiveConfig, FakeArgoWorkflowsClient())
+        val ops = createOps(allowDestructive = true)
 
         val result = ops.terminateWorkflow(
             namespace = "default",
             name = "test-workflow",
             reason = "test",
-            dryRun = true
+            dryRun = true,
         )
 
         assertTrue(result is OperationResult.DryRun)

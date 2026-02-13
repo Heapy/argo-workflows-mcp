@@ -12,16 +12,20 @@ RUN addgroup -g 1000 mcp && \
 # Copy the built application from local build
 COPY build/install/argo-workflows-mcp /app
 
-# Set ownership
-RUN chown -R mcp:mcp /app && \
+# Create data directory for SQLite database
+RUN mkdir -p /app/data && \
+    chown -R mcp:mcp /app && \
     chmod +x /app/bin/argo-workflows-mcp
 
 # Switch to non-root user
 USER mcp
 
 # Environment variables with defaults
-ENV MCP_SERVER_NAME="argo-workflows-mcp" \
-    MCP_SERVER_VERSION="${MCP_SERVER_VERSION}"
+ENV ARGO_MCP_HOST="0.0.0.0" \
+    ARGO_MCP_PORT="8080" \
+    ARGO_MCP_DB_PATH="/app/data/argo-workflows-mcp.db"
+
+EXPOSE 8080
 
 # Run the MCP server
 ENTRYPOINT ["/app/bin/argo-workflows-mcp"]

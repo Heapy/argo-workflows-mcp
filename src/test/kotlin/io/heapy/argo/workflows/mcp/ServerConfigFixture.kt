@@ -1,47 +1,27 @@
 package io.heapy.argo.workflows.mcp
 
-import io.heapy.argo.client.ArgoAuthConfig
-import io.heapy.argo.client.ArgoClientConfig
-import io.heapy.argo.workflows.mcp.config.KubernetesConfig
-import io.heapy.argo.workflows.mcp.config.LoggingConfig
-import io.heapy.argo.workflows.mcp.config.NamespaceFilter
-import io.heapy.argo.workflows.mcp.config.PermissionsConfig
-import io.heapy.argo.workflows.mcp.config.ServerConfig
-import io.heapy.argo.workflows.mcp.config.ServerInfo
+import io.heapy.argo.workflows.mcp.db.DatabaseFactory
+import io.heapy.argo.workflows.mcp.repository.AuditLogRepository
+import io.heapy.argo.workflows.mcp.repository.ConnectionRepository
+import io.heapy.argo.workflows.mcp.repository.SettingsRepository
+import org.jetbrains.exposed.sql.Database
+import java.nio.file.Files
 
-val serverConfig = ServerConfig(
-    server = ServerInfo(
-        name = "argo-workflows-mcp",
-        version = "0.1.0",
-    ),
-    kubernetes = KubernetesConfig(
-        configPath = null,
-        context = null,
-    ),
-    argo = ArgoClientConfig(
-        baseUrl = "http://localhost:2746",
-        defaultNamespace = "default",
-        auth = ArgoAuthConfig(
-            bearerToken = null,
-            username = null,
-            password = null,
-        ),
-        insecureSkipTlsVerify = false,
-        requestTimeoutSeconds = 30,
-        tlsServerName = null,
-    ),
-    permissions = PermissionsConfig(
-        allowDestructive = false,
-        allowMutations = false,
-        requireConfirmation = true,
-        namespaces = NamespaceFilter(
-            allow = listOf("*"),
-            deny = emptyList(),
-        ),
-    ),
-    logging = LoggingConfig(
-        audit = true,
-        auditFile = "./mcp-audit.log",
-        level = "info",
-    ),
+fun createTestDatabase(): Database {
+    val tempFile = Files.createTempFile("argo-mcp-test-", ".db")
+    tempFile.toFile().deleteOnExit()
+    return DatabaseFactory.init(tempFile.toString())
+}
+
+fun createTestRepositories(database: Database = createTestDatabase()): TestRepositories {
+    val connectionRepo = ConnectionRepository(database)
+    val settingsRepo = SettingsRepository(database)
+    val auditLogRepo = AuditLogRepository(database)
+    return TestRepositories(connectionRepo, settingsRepo, auditLogRepo)
+}
+
+data class TestRepositories(
+    val connectionRepo: ConnectionRepository,
+    val settingsRepo: SettingsRepository,
+    val auditLogRepo: AuditLogRepository,
 )

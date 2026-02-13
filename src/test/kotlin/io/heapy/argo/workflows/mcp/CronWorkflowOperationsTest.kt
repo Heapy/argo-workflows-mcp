@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class CronWorkflowOperationsTest {
-    private val cronOps = CronWorkflowOperations(serverConfig)
+    private val cronOps = CronWorkflowOperations(allowMutations = false)
 
     @Test
     fun `listCronWorkflows returns mock data`() = runTest {
@@ -35,7 +35,7 @@ class CronWorkflowOperationsTest {
         val result = cronOps.toggleCronSuspension(
             namespace = "default",
             name = "daily-job",
-            suspend = true
+            suspend = true,
         )
 
         assertTrue(result is OperationResult.Error)

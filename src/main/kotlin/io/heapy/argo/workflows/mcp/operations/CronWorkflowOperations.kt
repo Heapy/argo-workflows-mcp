@@ -1,22 +1,15 @@
 package io.heapy.argo.workflows.mcp.operations
 
-import io.heapy.argo.workflows.mcp.config.ServerConfig
 import io.heapy.komok.tech.logging.Logger
 
-/**
- * CronWorkflow management operations
- */
 class CronWorkflowOperations(
-    private val config: ServerConfig
+    private val allowMutations: Boolean,
 ) {
     private companion object : Logger()
 
-    /**
-     * List CronWorkflows
-     */
     fun listCronWorkflows(
         namespace: String? = null,
-        suspended: Boolean? = null
+        suspended: Boolean? = null,
     ): OperationResult {
         log.info("Listing cron workflows: namespace=$namespace, suspended=$suspended")
 
@@ -24,17 +17,14 @@ class CronWorkflowOperations(
             message = "Mock: Found 2 cron workflows",
             data = mapOf(
                 "count" to "2",
-                "cronWorkflows" to "daily-backup, hourly-sync"
-            )
+                "cronWorkflows" to "daily-backup, hourly-sync",
+            ),
         )
     }
 
-    /**
-     * Get CronWorkflow details
-     */
     fun getCronWorkflow(
         namespace: String,
-        name: String
+        name: String,
     ): OperationResult {
         log.info("Getting cron workflow: namespace=$namespace, name=$name")
 
@@ -46,18 +36,15 @@ class CronWorkflowOperations(
                 "schedule" to "0 0 * * *",
                 "suspended" to "false",
                 "lastScheduledTime" to "2024-01-01T00:00:00Z",
-                "nextScheduledTime" to "2024-01-02T00:00:00Z"
-            )
+                "nextScheduledTime" to "2024-01-02T00:00:00Z",
+            ),
         )
     }
 
-    /**
-     * Get CronWorkflow execution history
-     */
     fun getCronHistory(
         namespace: String,
         name: String,
-        limit: Int = 10
+        limit: Int = 10,
     ): OperationResult {
         log.info("Getting cron history: namespace=$namespace, name=$name, limit=$limit")
 
@@ -65,25 +52,22 @@ class CronWorkflowOperations(
             message = "Mock: CronWorkflow history retrieved",
             data = mapOf(
                 "count" to "5",
-                "history" to "$name-20240101, $name-20231231, $name-20231230"
-            )
+                "history" to "$name-20240101, $name-20231231, $name-20231230",
+            ),
         )
     }
 
-    /**
-     * Suspend or resume CronWorkflow
-     */
     fun toggleCronSuspension(
         namespace: String,
         name: String,
-        suspend: Boolean
+        suspend: Boolean,
     ): OperationResult {
         log.info("Toggling cron suspension: namespace=$namespace, name=$name, suspend=$suspend")
 
-        if (!config.permissions.allowMutations) {
+        if (!allowMutations) {
             return OperationResult.Error(
                 message = "Mutation operations are not allowed by configuration",
-                code = "PERMISSION_DENIED"
+                code = "PERMISSION_DENIED",
             )
         }
 
@@ -92,8 +76,8 @@ class CronWorkflowOperations(
             data = mapOf(
                 "namespace" to namespace,
                 "cronWorkflow" to name,
-                "suspended" to suspend.toString()
-            )
+                "suspended" to suspend.toString(),
+            ),
         )
     }
 }
