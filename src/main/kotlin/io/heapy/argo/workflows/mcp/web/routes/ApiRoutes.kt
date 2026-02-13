@@ -12,22 +12,37 @@ import io.heapy.argo.workflows.mcp.web.fragments.auditLogTableFragment
 import io.heapy.argo.workflows.mcp.web.fragments.connectionFormFragment
 import io.heapy.argo.workflows.mcp.web.fragments.connectionListFragment
 import io.heapy.argo.workflows.mcp.web.fragments.settingsFormFragment
-import io.ktor.server.html.respondHtmlFragment
+import io.ktor.http.ContentType
 import io.ktor.server.request.receiveParameters
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
+import kotlinx.html.FlowContent
+import kotlinx.html.div
+import kotlinx.html.stream.createHTML
 import java.time.LocalDateTime
 
-@Suppress("LongMethod")
+private suspend fun RoutingCall.respondHtmlFragment(block: FlowContent.() -> Unit) {
+    val html = createHTML().div { block() }
+    respondText(html, ContentType.Text.Html)
+}
+
 fun Route.apiRoutes(
     connectionRepo: ConnectionRepository,
     settingsRepo: SettingsRepository,
     auditLogRepo: AuditLogRepository,
 ) {
-    // Audit endpoints
+    auditRoutes(auditLogRepo)
+    connectionCrudRoutes(connectionRepo)
+    connectionActionRoutes(connectionRepo)
+    settingsRoutes(settingsRepo)
+}
+
+private fun Route.auditRoutes(auditLogRepo: AuditLogRepository) {
     get("/api/audit") {
         val page = call.parameters["page"]?.toIntOrNull() ?: 0
         val records = auditLogRepo.findAll(page)
@@ -36,8 +51,9 @@ fun Route.apiRoutes(
             auditLogTableFragment(records, total)
         }
     }
+}
 
-    // Connection list
+private fun Route.connectionCrudRoutes(connectionRepo: ConnectionRepository) {
     get("/api/connections") {
         val connections = connectionRepo.findAll()
         call.respondHtmlFragment {
@@ -45,27 +61,24 @@ fun Route.apiRoutes(
         }
     }
 
-    // New connection form
     get("/api/connections/new") {
         call.respondHtmlFragment {
             connectionFormFragment()
         }
     }
 
-    // Edit connection form
     get("/api/connections/{id}/edit") {
         val id = call.parameters["id"]?.toIntOrNull()
         val conn = id?.let { connectionRepo.findById(it) }
         if (conn == null) {
             call.respondHtmlFragment { alertError("Connection not found") }
-            return@get
-        }
-        call.respondHtmlFragment {
-            connectionFormFragment(conn)
+        } else {
+            call.respondHtmlFragment {
+                connectionFormFragment(conn)
+            }
         }
     }
 
-    // Create connection
     post("/api/connections") {
         val params = call.receiveParameters()
         val record = params.toConnectionRecord()
@@ -76,23 +89,21 @@ fun Route.apiRoutes(
         }
     }
 
-    // Update connection
     put("/api/connections/{id}") {
         val id = call.parameters["id"]?.toIntOrNull()
         if (id == null) {
             call.respondHtmlFragment { alertError("Invalid connection ID") }
-            return@put
-        }
-        val params = call.receiveParameters()
-        val record = params.toConnectionRecord()
-        connectionRepo.update(id, record)
-        val connections = connectionRepo.findAll()
-        call.respondHtmlFragment {
-            connectionListFragment(connections)
+        } else {
+            val params = call.receiveParameters()
+            val record = params.toConnectionRecord()
+            connectionRepo.update(id, record)
+            val connections = connectionRepo.findAll()
+            call.respondHtmlFragment {
+                connectionListFragment(connections)
+            }
         }
     }
 
-    // Delete connection
     delete("/api/connections/{id}") {
         val id = call.parameters["id"]?.toIntOrNull()
         if (id != null) {
@@ -103,8 +114,9 @@ fun Route.apiRoutes(
             connectionListFragment(connections)
         }
     }
+}
 
-    // Activate connection
+private fun Route.connectionActionRoutes(connectionRepo: ConnectionRepository) {
     post("/api/connections/{id}/activate") {
         val id = call.parameters["id"]?.toIntOrNull()
         if (id != null) {
@@ -116,31 +128,34 @@ fun Route.apiRoutes(
         }
     }
 
-    // Test connection
     post("/api/test-connection/{id}") {
         val id = call.parameters["id"]?.toIntOrNull()
         val conn = id?.let { connectionRepo.findById(it) }
         if (conn == null) {
             call.respondHtmlFragment { alertError("Connection not found") }
-            return@post
-        }
-
-        try {
-            val client = ArgoWorkflowsHttpClient.create(conn.toArgoClientConfig())
-            client.use {
-                it.listWorkflows(conn.defaultNamespace, limit = 1)
-            }
-            call.respondHtmlFragment {
-                alertSuccess("Connection successful! Argo server is reachable.")
-            }
-        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            call.respondHtmlFragment {
-                alertError("Connection failed: ${e.message}")
-            }
+        } else {
+            call.testConnection(conn)
         }
     }
+}
 
-    // Settings endpoints
+private suspend fun RoutingCall.testConnection(conn: ConnectionRecord) {
+    try {
+        val client = ArgoWorkflowsHttpClient.create(conn.toArgoClientConfig())
+        client.use {
+            it.listWorkflows(conn.defaultNamespace, limit = 1)
+        }
+        respondHtmlFragment {
+            alertSuccess("Connection successful! Argo server is reachable.")
+        }
+    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+        respondHtmlFragment {
+            alertError("Connection failed: ${e.message}")
+        }
+    }
+}
+
+private fun Route.settingsRoutes(settingsRepo: SettingsRepository) {
     get("/api/settings") {
         val settings = settingsRepo.getAll()
         call.respondHtmlFragment {
@@ -173,10 +188,13 @@ private fun io.ktor.http.Parameters.toConnectionRecord(): ConnectionRecord {
         username = get("username")?.takeIf { it.isNotBlank() },
         password = get("password")?.takeIf { it.isNotBlank() },
         insecureSkipTlsVerify = get("insecureSkipTlsVerify") == "on",
-        requestTimeoutSeconds = get("requestTimeoutSeconds")?.toLongOrNull() ?: 30L,
+        requestTimeoutSeconds = get("requestTimeoutSeconds")?.toLongOrNull()
+            ?: DEFAULT_REQUEST_TIMEOUT_SECONDS,
         tlsServerName = get("tlsServerName")?.takeIf { it.isNotBlank() },
         isActive = false,
         createdAt = now,
         updatedAt = now,
     )
 }
+
+private const val DEFAULT_REQUEST_TIMEOUT_SECONDS = 30L

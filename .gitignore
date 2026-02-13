@@ -15,3 +15,6 @@ build
 
 # Git worktrees
 .worktrees
+
+# Database
+argo-workflows-mcp.db

@@ -49,4 +49,7 @@ java {
 
 application {
     mainClass = "io.heapy.argo.workflows.mcp.AppKt"
+    applicationDefaultJvmArgs = listOf(
+        "--enable-native-access=ALL-UNNAMED",
+    )
 }

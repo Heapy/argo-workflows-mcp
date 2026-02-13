@@ -48,13 +48,28 @@ fun HTML.layout(pageTitle: String, activePage: String, content: kotlinx.html.DIV
                 li { h1 { +"Argo MCP" } }
             }
             ul {
-                li { a(href = "/audit") { if (activePage == "audit") attributes["aria-current"] = "page"; +"Audit Log" } }
-                li { a(href = "/connections") { if (activePage == "connections") attributes["aria-current"] = "page"; +"Connections" } }
-                li { a(href = "/settings") { if (activePage == "settings") attributes["aria-current"] = "page"; +"Settings" } }
+                li {
+                    navLink("/audit", "Audit Log", activePage == "audit")
+                }
+                li {
+                    navLink("/connections", "Connections", activePage == "connections")
+                }
+                li {
+                    navLink("/settings", "Settings", activePage == "settings")
+                }
             }
         }
         main(classes = "container") {
             div { content() }
         }
+    }
+}
+
+private fun kotlinx.html.LI.navLink(href: String, text: String, active: Boolean) {
+    a(href = href) {
+        if (active) {
+            attributes["aria-current"] = "page"
+        }
+        +text
     }
 }

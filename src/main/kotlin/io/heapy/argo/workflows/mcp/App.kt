@@ -11,8 +11,6 @@ import io.heapy.komok.tech.logging.logger
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
-import io.ktor.server.sse.SSE
-import io.ktor.server.application.install
 import io.modelcontextprotocol.kotlin.sdk.server.mcp
 
 fun main() {
@@ -40,7 +38,6 @@ fun main() {
     log.info("Starting server on {}:{}", config.host, config.port)
 
     embeddedServer(CIO, host = config.host, port = config.port) {
-        install(SSE)
         mcp {
             server
         }
