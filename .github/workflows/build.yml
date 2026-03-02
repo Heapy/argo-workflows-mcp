@@ -21,7 +21,7 @@ jobs:
           distribution: "corretto"
       - run: ./gradlew check installDist
       - name: Upload distribution artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: "install-dist"
           path: "build/install/argo-workflows-mcp"
@@ -41,7 +41,7 @@ jobs:
       - name: "Determine version"
         id: version
         run: echo "value=$(./version.sh)" >> "$GITHUB_OUTPUT"
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: "install-dist"
           path: "build/install/argo-workflows-mcp"
