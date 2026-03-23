@@ -1,5 +1,5 @@
 # Runtime stage - assumes application is built locally
-FROM bellsoft/liberica-openjre-alpine:25
+FROM bellsoft/liberica-openjre-alpine:26
 
 ARG MCP_SERVER_VERSION=unknown
 
