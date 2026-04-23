@@ -9,7 +9,7 @@ repositories {
 
 dependencies {
     implementation(libs.kotlinx.serialization.json)
-    implementation(ktorLibs.client.cio)
+    implementation(ktorLibs.client.java)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.client.contentNegotiation)
 }

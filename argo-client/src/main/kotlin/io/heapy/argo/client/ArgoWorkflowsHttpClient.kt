@@ -2,7 +2,7 @@ package io.heapy.argo.client
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -23,8 +23,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import java.io.IOException
+import java.net.http.HttpClient.Version
+import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.*
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
 /**
@@ -120,7 +124,7 @@ class ArgoWorkflowsHttpClient private constructor(
                 explicitNulls = false
             }
 
-            val httpClient = HttpClient(CIO) {
+            val httpClient = HttpClient(Java) {
                 install(ContentNegotiation) {
                     json(json)
                 }
@@ -148,12 +152,10 @@ class ArgoWorkflowsHttpClient private constructor(
                     }
                 }
                 engine {
-                    https {
-                        if (config.insecureSkipTlsVerify) {
-                            trustManager = trustAllCertificatesManager()
-                        }
-                        if (config.tlsServerName != null) {
-                            serverName = config.tlsServerName
+                    protocolVersion = Version.HTTP_1_1
+                    if (config.insecureSkipTlsVerify) {
+                        config {
+                            sslContext(createTrustAllSslContext())
                         }
                     }
                 }
@@ -162,12 +164,16 @@ class ArgoWorkflowsHttpClient private constructor(
             return ArgoWorkflowsHttpClient(config, httpClient, json)
         }
 
-        private fun trustAllCertificatesManager(): X509TrustManager =
-            object : X509TrustManager {
+        private fun createTrustAllSslContext(): SSLContext {
+            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
                 override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
                 override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
                 override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+            })
+            return SSLContext.getInstance("TLS").apply {
+                init(null, trustAllCerts, SecureRandom())
             }
+        }
     }
 }
 
