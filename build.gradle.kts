@@ -9,6 +9,29 @@ repositories {
     mavenCentral()
 }
 
+configurations.all {
+    resolutionStrategy {
+        failOnVersionConflict()
+        // Pre-resolve known transitive conflicts to the project's pinned
+        // versions so failOnVersionConflict catches only new/unexpected ones.
+        val kotlinVersion = libs.versions.kotlin.get()
+        val serializationVersion = libs.versions.kotlinx.serialization.get()
+        force(
+            "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion",
+            "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion",
+            "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion",
+            "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion",
+            "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion",
+            "org.jetbrains:annotations:23.0.0",
+            "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
+            "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
+            "org.jetbrains.kotlinx:kotlinx-serialization-json-io:$serializationVersion",
+            "org.jetbrains.kotlinx:kotlinx-io-core:0.9.0",
+            "org.slf4j:slf4j-api:2.0.17",
+        )
+    }
+}
+
 dependencies {
     implementation(project(":argo-client"))
     implementation(libs.kotlinx.coroutines.core)
