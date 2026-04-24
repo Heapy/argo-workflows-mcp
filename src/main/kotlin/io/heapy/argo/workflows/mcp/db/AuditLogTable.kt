@@ -1,7 +1,7 @@
 package io.heapy.argo.workflows.mcp.db
 
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.javatime.datetime
+import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
+import org.jetbrains.exposed.v1.javatime.datetime
 
 object AuditLogTable : IntIdTable("audit_log") {
     val toolName = varchar("tool_name", 255)

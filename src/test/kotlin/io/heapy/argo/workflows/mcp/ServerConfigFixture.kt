@@ -4,7 +4,7 @@ import io.heapy.argo.workflows.mcp.db.DatabaseFactory
 import io.heapy.argo.workflows.mcp.repository.AuditLogRepository
 import io.heapy.argo.workflows.mcp.repository.ConnectionRepository
 import io.heapy.argo.workflows.mcp.repository.SettingsRepository
-import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.v1.jdbc.Database
 import java.nio.file.Files
 
 fun createTestDatabase(): Database {
