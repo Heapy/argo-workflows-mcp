@@ -7,11 +7,14 @@ import io.heapy.argo.workflows.mcp.repository.ConnectionRepository
 import io.heapy.argo.workflows.mcp.repository.SettingsRepository
 import io.heapy.argo.workflows.mcp.web.routes.apiRoutes
 import io.heapy.argo.workflows.mcp.web.routes.uiRoutes
+import io.heapy.argo.workflows.mcp.web.uiUrl
 import io.heapy.komok.tech.logging.logger
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
 import io.modelcontextprotocol.kotlin.sdk.server.mcp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 fun main() {
     val log = logger {}
@@ -37,7 +40,7 @@ fun main() {
 
     log.info("Starting server on {}:{}", config.host, config.port)
 
-    embeddedServer(CIO, host = config.host, port = config.port) {
+    val ktorServer = embeddedServer(CIO, host = config.host, port = config.port) {
         mcp {
             server
         }
@@ -45,5 +48,15 @@ fun main() {
             uiRoutes()
             apiRoutes(connectionRepo, settingsRepo, auditLogRepo)
         }
-    }.start(wait = true)
+    }
+
+    CoroutineScope(ktorServer.application.coroutineContext).launch {
+        ktorServer.engine.resolvedConnectors()
+            .mapNotNull { it.uiUrl() }
+            .forEach { uiUrl ->
+                log.info("UI available at {}", uiUrl)
+            }
+    }
+
+    ktorServer.start(wait = true)
 }

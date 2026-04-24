@@ -5,7 +5,7 @@ data class ServerConfig(
     val port: Int = System.getenv("ARGO_MCP_PORT")?.toIntOrNull() ?: DEFAULT_PORT,
     val dbPath: String = System.getenv("ARGO_MCP_DB_PATH") ?: "argo-workflows-mcp.db",
     val serverName: String = "argo-workflows-mcp",
-    val serverVersion: String = "0.2.0",
+    val serverVersion: String = "0.3.0",
 )
 
 private const val DEFAULT_PORT = 8080

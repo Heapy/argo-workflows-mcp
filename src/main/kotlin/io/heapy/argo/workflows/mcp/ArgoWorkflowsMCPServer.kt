@@ -43,7 +43,7 @@ class ArgoWorkflowsMCPServer(
         ArgoWorkflowsHttpClient.create(conn.toArgoClientConfig())
     },
     private val serverName: String = "argo-workflows-mcp",
-    private val serverVersion: String = "0.2.0",
+    private val serverVersion: String = "0.3.0",
 ) : Closeable {
     private companion object : Logger()
 
