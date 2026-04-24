@@ -20,82 +20,74 @@ Model Context Protocol (MCP) server for interacting with Argo Workflows. This se
 ./gradlew test
 ```
 
-## Configuration with Claude Desktop
+## Running the MCP Server
 
-Add this to your Claude Desktop MCP configuration file:
-
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
-
-### Using the `claude` CLI
+This project runs as an HTTP/SSE MCP server. It is not a stdio server, so MCP
+clients must connect to its URL after the process is started.
 
 ```bash
-claude mcp add --transport stdio argo-workflows \
-  -- docker run -i --rm \
-    -e ARGO_BASE_URL=http://host.docker.internal:2746 \
-    -e ARGO_NAMESPACE=default \
-    -e MCP_ALLOW_MUTATIONS=true \
-    -e MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
-    -v "$HOME/.kube/config:/home/mcp/.kube/config:ro" \
-    -v "$HOME/.argo-mcp-logs:/app/logs" \
-    ghcr.io/heapy/argo-workflows-mcp:main
+./gradlew installDist
+
+ARGO_MCP_HOST=127.0.0.1 \
+ARGO_MCP_PORT=8080 \
+ARGO_MCP_DB_PATH=./argo-workflows-mcp.db \
+./build/install/argo-workflows-mcp/bin/argo-workflows-mcp
 ```
 
-After running the command restart Claude Desktop so it reloads the MCP list.
+Open the web UI at <http://localhost:8080/connections>. The MCP SSE endpoint is
+available at <http://localhost:8080/>.
 
-### Using Docker
-
-```json
-{
-  "mcpServers": {
-    "argo-workflows": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e", "ARGO_BASE_URL=http://host.docker.internal:2746",
-        "-e", "ARGO_NAMESPACE=default",
-        "-e", "MCP_ALLOW_MUTATIONS=true",
-        "-e", "MCP_AUDIT_FILE=/app/logs/mcp-audit.log",
-        "-v", "/Users/your-user/.kube/config:/home/mcp/.kube/config:ro",
-        "-v", "/Users/your-user/.argo-mcp-logs:/app/logs",
-        "ghcr.io/heapy/argo-workflows-mcp:main"
-      ]
-    }
-  }
-}
-```
+Add an Argo connection from the web UI, or connect the MCP server first and use
+the `add_connection` tool. Connection details are stored in the SQLite database
+selected by `ARGO_MCP_DB_PATH`.
 
 ## Configuration with Claude Code
 
-Add this to your Claude Code MCP configuration file:
+Claude Code can connect directly to the server's SSE endpoint:
 
-**Location**: `~/.config/claude-code/mcp_config.json`
+```bash
+claude mcp add --transport sse argo-workflows http://localhost:8080/
+```
 
-### Using Docker
+For project configuration, use `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "argo-workflows": {
-      "command": "docker",
+      "type": "sse",
+      "url": "http://localhost:8080/"
+    }
+  }
+}
+```
+
+## Configuration with Claude Desktop
+
+Claude Desktop remote MCP support depends on your Desktop version and plan. If
+your Desktop build supports remote connectors, add a custom connector pointing to
+`http://localhost:8080/`.
+
+For Desktop setups that only launch stdio commands, bridge the local SSE server
+with `mcp-remote`:
+
+```json
+{
+  "mcpServers": {
+    "argo-workflows": {
+      "command": "npx",
       "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e", "ARGO_BASE_URL=http://host.docker.internal:2746",
-        "-e", "ARGO_NAMESPACE=default",
-        "-e", "MCP_ALLOW_MUTATIONS=true",
-        "-e", "MCP_AUDIT_FILE=/app/logs/mcp-audit.log",
-        "-v", "/Users/your-user/.kube/config:/home/mcp/.kube/config:ro",
-        "-v", "/Users/your-user/.argo-mcp-logs:/app/logs",
-        "ghcr.io/heapy/argo-workflows-mcp:main"
+        "-y",
+        "mcp-remote@latest",
+        "http://localhost:8080/"
       ]
     }
   }
 }
 ```
+
+After changing Claude Desktop configuration, fully quit and reopen Claude
+Desktop so it reloads the MCP server list.
 
 ## Docker Usage
 
@@ -108,12 +100,9 @@ Images are published to GitHub Container Registry by CI:
 
 ```bash
 docker run -it --rm \
-  -e ARGO_BASE_URL=https://your-argo-server:2746 \
-  -e ARGO_NAMESPACE=default \
-  -e ARGO_TOKEN=$(cat ~/secrets/argo-token) \
-  -e MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
-  -v /Users/your-user/.kube/config:/home/mcp/.kube/config:ro \
-  -v /Users/your-user/.argo-mcp-logs:/app/logs \
+  -p 127.0.0.1:8080:8080 \
+  -e ARGO_MCP_DB_PATH=/app/data/argo-workflows-mcp.db \
+  -v "$HOME/.argo-workflows-mcp:/app/data" \
   ghcr.io/heapy/argo-workflows-mcp:main
 ```
 
@@ -131,60 +120,56 @@ docker-compose up
 
 # Or run directly
 docker run -it --rm \
-  -e ARGO_BASE_URL=http://your-argo-server:2746 \
-  -e ARGO_NAMESPACE=default \
-  -e ARGO_TOKEN=your-token \
-  -e MCP_AUDIT_FILE=/app/logs/mcp-audit.log \
-  -v $(pwd)/logs:/app/logs \
+  -p 127.0.0.1:8080:8080 \
+  -e ARGO_MCP_DB_PATH=/app/data/argo-workflows-mcp.db \
+  -v "$(pwd)/data:/app/data" \
   argo-workflows-mcp:latest
 ```
 
-If the TLS certificate is issued for another host (for example `localhost` while you access the server via `host.docker.internal`), set `ARGO_TLS_SERVER_NAME` to the certificate hostname so the client presents the correct SNI value.
+Then open <http://localhost:8080/connections> and add the Argo server URL,
+namespace, token or basic credentials, and TLS options.
+
+If the TLS certificate is issued for another host, set the connection's TLS
+server name in the UI or `add_connection` tool so the client presents the
+expected SNI value.
 
 ## Environment Variables
 
 ### Server Configuration
 
-- `MCP_SERVER_NAME` - Server name (default: `argo-workflows-mcp`)
-- `MCP_SERVER_VERSION` - Server version (default: `0.1.0`)
+- `ARGO_MCP_HOST` - HTTP bind address (default: `0.0.0.0`)
+- `ARGO_MCP_PORT` - HTTP port (default: `8080`)
+- `ARGO_MCP_DB_PATH` - SQLite database path (default: `argo-workflows-mcp.db`)
 
 ### Argo Workflows Connection
 
-- `ARGO_BASE_URL` - Argo Workflows API URL (default: `http://localhost:2746`)
-- `ARGO_NAMESPACE` - Default Kubernetes namespace (default: `default`)
-- `ARGO_TOKEN` - Bearer token for authentication
-- `ARGO_USERNAME` - Username for basic auth
-- `ARGO_PASSWORD` - Password for basic auth
-- `ARGO_INSECURE_SKIP_TLS_VERIFY` - Skip TLS verification (default: `false`)
-- `ARGO_TLS_SERVER_NAME` - Override TLS server name / SNI value when establishing TLS connections
-- `ARGO_REQUEST_TIMEOUT_SECONDS` - Request timeout (default: `30`)
+Argo connection settings are not read from environment variables. Configure
+them in the web UI at `/connections`, or by calling the `add_connection` MCP
+tool. The stored connection includes:
 
-### Kubernetes Configuration
-
-- `KUBECONFIG` - Path to kubeconfig file
-- `KUBE_CONTEXT` - Kubernetes context to use
+- Argo Workflows API URL
+- Default Kubernetes namespace
+- Bearer token or basic auth credentials
+- TLS verification and TLS server name options
+- Request timeout
 
 ### Permissions
 
-- `MCP_ALLOW_DESTRUCTIVE` - Allow destructive operations like delete (default: `false`)
-- `MCP_ALLOW_MUTATIONS` - Allow mutations like create/update (default: `false`)
-- `MCP_REQUIRE_CONFIRMATION` - Require confirmation for sensitive operations (default: `true`)
-- `MCP_NAMESPACES_ALLOW` - Comma-separated list of allowed namespaces (default: `*`)
-- `MCP_NAMESPACES_DENY` - Comma-separated list of denied namespaces (default: empty)
+Permission settings are stored in the SQLite database and can be changed from
+the web UI at `/settings`.
 
 ### Logging
 
-- `MCP_AUDIT_ENABLED` - Enable audit logging (default: `true`)
-- `MCP_AUDIT_FILE` - Audit log file path (default: `./mcp-audit.log`)
-- `MCP_LOG_LEVEL` - Log level: debug, info, warn, error (default: `info`)
+Application logs are written to stdout. Tool audit records are stored in the
+SQLite database and shown in the web UI at `/audit`.
 
 ## Security Notes
 
 - By default, the server runs in read-only mode
-- Set `MCP_ALLOW_MUTATIONS=true` to enable create/update operations
-- Set `MCP_ALLOW_DESTRUCTIVE=true` to enable delete operations
-- Use `MCP_NAMESPACES_ALLOW` to restrict access to specific namespaces
-- All operations are logged when `MCP_AUDIT_ENABLED=true`
+- Enable mutation or destructive operations only when the MCP server is bound to
+  a trusted interface.
+- Use the Settings page to review permission flags before enabling mutations.
+- Tool calls are written to the audit log table.
 
 ## Development
 
