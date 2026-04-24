@@ -50,36 +50,36 @@ class ConnectionRepository(private val database: Database) {
 
     fun create(record: ConnectionRecord): Int = transaction(database) {
         val now = LocalDateTime.now()
-        ConnectionsTable.insert {
-            it[name] = record.name
-            it[baseUrl] = record.baseUrl
-            it[defaultNamespace] = record.defaultNamespace
-            it[authType] = record.authType
-            it[bearerToken] = record.bearerToken
-            it[username] = record.username
-            it[password] = record.password
-            it[insecureSkipTlsVerify] = record.insecureSkipTlsVerify
-            it[requestTimeoutSeconds] = record.requestTimeoutSeconds
-            it[tlsServerName] = record.tlsServerName
-            it[isActive] = record.isActive
-            it[createdAt] = now
-            it[updatedAt] = now
+        ConnectionsTable.insert { statement ->
+            statement[name] = record.name
+            statement[baseUrl] = record.baseUrl
+            statement[defaultNamespace] = record.defaultNamespace
+            statement[authType] = record.authType
+            statement[bearerToken] = record.bearerToken
+            statement[username] = record.username
+            statement[password] = record.password
+            statement[insecureSkipTlsVerify] = record.insecureSkipTlsVerify
+            statement[requestTimeoutSeconds] = record.requestTimeoutSeconds
+            statement[tlsServerName] = record.tlsServerName
+            statement[isActive] = record.isActive
+            statement[createdAt] = now
+            statement[updatedAt] = now
         }[ConnectionsTable.id].value
     }
 
     fun update(id: Int, record: ConnectionRecord): Boolean = transaction(database) {
-        ConnectionsTable.update({ ConnectionsTable.id eq id }) {
-            it[name] = record.name
-            it[baseUrl] = record.baseUrl
-            it[defaultNamespace] = record.defaultNamespace
-            it[authType] = record.authType
-            it[bearerToken] = record.bearerToken
-            it[username] = record.username
-            it[password] = record.password
-            it[insecureSkipTlsVerify] = record.insecureSkipTlsVerify
-            it[requestTimeoutSeconds] = record.requestTimeoutSeconds
-            it[tlsServerName] = record.tlsServerName
-            it[updatedAt] = LocalDateTime.now()
+        ConnectionsTable.update({ ConnectionsTable.id eq id }) { statement ->
+            statement[name] = record.name
+            statement[baseUrl] = record.baseUrl
+            statement[defaultNamespace] = record.defaultNamespace
+            statement[authType] = record.authType
+            statement[bearerToken] = record.bearerToken
+            statement[username] = record.username
+            statement[password] = record.password
+            statement[insecureSkipTlsVerify] = record.insecureSkipTlsVerify
+            statement[requestTimeoutSeconds] = record.requestTimeoutSeconds
+            statement[tlsServerName] = record.tlsServerName
+            statement[updatedAt] = LocalDateTime.now()
         } > 0
     }
 

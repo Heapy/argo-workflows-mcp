@@ -180,8 +180,8 @@ private fun io.ktor.http.Parameters.toConnectionRecord(): ConnectionRecord {
     val now = LocalDateTime.now()
     return ConnectionRecord(
         id = 0,
-        name = get("name") ?: "",
-        baseUrl = get("baseUrl") ?: "",
+        name = get("name").orEmpty(),
+        baseUrl = get("baseUrl").orEmpty(),
         defaultNamespace = get("defaultNamespace") ?: "default",
         authType = get("authType") ?: "none",
         bearerToken = get("bearerToken")?.takeIf { it.isNotBlank() },

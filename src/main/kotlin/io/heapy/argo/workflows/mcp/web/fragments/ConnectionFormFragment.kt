@@ -54,7 +54,7 @@ private fun FlowContent.connectionDetailsFields(existing: ConnectionRecord?) {
     label {
         +"Name"
         textInput(name = "name") {
-            value = existing?.name ?: ""
+            value = existing?.name.orEmpty()
             required = true
             placeholder = "my-argo-server"
         }
@@ -63,7 +63,7 @@ private fun FlowContent.connectionDetailsFields(existing: ConnectionRecord?) {
     label {
         +"Base URL"
         textInput(name = "baseUrl") {
-            value = existing?.baseUrl ?: ""
+            value = existing?.baseUrl.orEmpty()
             required = true
             placeholder = "https://argo.example.com"
         }
@@ -96,7 +96,7 @@ private fun FlowContent.authFields(existing: ConnectionRecord?) {
     label {
         +"Bearer Token"
         input(type = InputType.password, name = "bearerToken") {
-            value = existing?.bearerToken ?: ""
+            value = existing?.bearerToken.orEmpty()
             placeholder = "Optional"
         }
     }
@@ -104,7 +104,7 @@ private fun FlowContent.authFields(existing: ConnectionRecord?) {
     label {
         +"Username"
         textInput(name = "username") {
-            value = existing?.username ?: ""
+            value = existing?.username.orEmpty()
             placeholder = "Optional"
         }
     }
@@ -112,7 +112,7 @@ private fun FlowContent.authFields(existing: ConnectionRecord?) {
     label {
         +"Password"
         input(type = InputType.password, name = "password") {
-            value = existing?.password ?: ""
+            value = existing?.password.orEmpty()
             placeholder = "Optional"
         }
     }
@@ -129,7 +129,7 @@ private fun FlowContent.advancedFields(existing: ConnectionRecord?) {
     label {
         +"TLS Server Name"
         textInput(name = "tlsServerName") {
-            value = existing?.tlsServerName ?: ""
+            value = existing?.tlsServerName.orEmpty()
             placeholder = "Optional"
         }
     }

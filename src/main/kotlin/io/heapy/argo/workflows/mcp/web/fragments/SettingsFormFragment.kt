@@ -84,7 +84,7 @@ private fun FlowContent.namespaceFilteringFieldSet(settings: Map<String, String>
             +"Denied Namespaces (comma-separated)"
             div {
                 textInput(name = "namespaces_deny") {
-                    value = settings["namespaces_deny"] ?: ""
+                    value = settings["namespaces_deny"].orEmpty()
                     attributes["hx-put"] = "/api/settings/namespaces_deny"
                     attributes["hx-trigger"] = "change"
                     attributes["hx-vals"] = """js:{value: event.target.value}"""

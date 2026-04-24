@@ -34,7 +34,7 @@ import kotlinx.serialization.json.putJsonObject
 import java.io.Closeable
 import java.time.LocalDateTime
 
-@Suppress("TooManyFunctions", "LabeledExpression")
+@Suppress("TooManyFunctions", "LabeledExpression", "LargeClass")
 class ArgoWorkflowsMCPServer(
     private val connectionRepo: ConnectionRepository,
     private val settingsRepo: SettingsRepository,
@@ -52,12 +52,16 @@ class ArgoWorkflowsMCPServer(
 
     private fun getClientAndConfig(): Pair<ArgoWorkflowsClient, ConnectionRecord>? {
         val activeConn = connectionRepo.findActive() ?: return null
-        if (currentConnectionId != activeConn.id) {
+        val client = currentClient
+        return if (client != null && currentConnectionId == activeConn.id) {
+            client to activeConn
+        } else {
             currentClient?.close()
-            currentClient = clientFactory(activeConn)
+            val newClient = clientFactory(activeConn)
+            currentClient = newClient
             currentConnectionId = activeConn.id
+            newClient to activeConn
         }
-        return currentClient!! to activeConn
     }
 
     private fun noConnectionResult(): CallToolResult = CallToolResult(
@@ -130,7 +134,10 @@ class ArgoWorkflowsMCPServer(
         block: suspend () -> CallToolResult,
     ): CallToolResult {
         val startTime = System.currentTimeMillis()
-        val argsJson = arguments?.entries?.joinToString(", ") { "${it.key}=${it.value}" } ?: ""
+        val argumentEntries = arguments.orEmpty().entries
+        val argsJson = argumentEntries.joinToString(", ") { (key, value) ->
+            "$key=$value"
+        }
 
         return try {
             val result = block()

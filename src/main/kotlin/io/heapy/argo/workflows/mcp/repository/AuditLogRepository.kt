@@ -21,13 +21,13 @@ data class AuditLogRecord(
 class AuditLogRepository(private val database: Database) {
     fun add(record: AuditLogRecord) {
         transaction(database) {
-            AuditLogTable.insert {
-                it[toolName] = record.toolName
-                it[arguments] = record.arguments
-                it[status] = record.status
-                it[resultSummary] = record.resultSummary
-                it[durationMs] = record.durationMs
-                it[executedAt] = record.executedAt
+            AuditLogTable.insert { statement ->
+                statement[toolName] = record.toolName
+                statement[arguments] = record.arguments
+                statement[status] = record.status
+                statement[resultSummary] = record.resultSummary
+                statement[durationMs] = record.durationMs
+                statement[executedAt] = record.executedAt
             }
         }
     }

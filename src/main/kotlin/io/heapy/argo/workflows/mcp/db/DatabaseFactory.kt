@@ -30,9 +30,9 @@ object DatabaseFactory {
         )
 
         for ((key, value) in defaults) {
-            SettingsTable.insertIgnore {
-                it[SettingsTable.key] = key
-                it[SettingsTable.value] = value
+            SettingsTable.insertIgnore { statement ->
+                statement[SettingsTable.key] = key
+                statement[SettingsTable.value] = value
             }
         }
     }

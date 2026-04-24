@@ -22,9 +22,9 @@ class SettingsRepository(private val database: Database) {
                 it[SettingsTable.value] = value
             }
             if (updated == 0) {
-                SettingsTable.insert {
-                    it[SettingsTable.key] = key
-                    it[SettingsTable.value] = value
+                SettingsTable.insert { statement ->
+                    statement[SettingsTable.key] = key
+                    statement[SettingsTable.value] = value
                 }
             }
         }
@@ -39,5 +39,5 @@ class SettingsRepository(private val database: Database) {
     fun getAllowMutations(): Boolean = get("allow_mutations")?.toBoolean() ?: false
     fun getRequireConfirmation(): Boolean = get("require_confirmation")?.toBoolean() ?: true
     fun getNamespacesAllow(): String = get("namespaces_allow") ?: "*"
-    fun getNamespacesDeny(): String = get("namespaces_deny") ?: ""
+    fun getNamespacesDeny(): String = get("namespaces_deny").orEmpty()
 }
