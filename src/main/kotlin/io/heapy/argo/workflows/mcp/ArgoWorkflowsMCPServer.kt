@@ -68,7 +68,7 @@ class ArgoWorkflowsMCPServer(
         content = listOf(
             TextContent(
                 "No active Argo connection configured. " +
-                    "Please add and activate a connection via the web UI."
+                    "Please add and activate a connection via the add_connection tool or web UI."
             )
         ),
         isError = true,
@@ -94,6 +94,10 @@ class ArgoWorkflowsMCPServer(
     }
 
     private fun registerTools(server: Server) {
+        ConnectionTools(
+            connectionRepo = connectionRepo,
+            audit = { toolName, arguments, block -> withAudit(toolName, arguments, block) },
+        ).register(server)
         registerListWorkflows(server)
         registerGetWorkflow(server)
         registerGetWorkflowLogs(server)
@@ -136,7 +140,7 @@ class ArgoWorkflowsMCPServer(
         val startTime = System.currentTimeMillis()
         val argumentEntries = arguments.orEmpty().entries
         val argsJson = argumentEntries.joinToString(", ") { (key, value) ->
-            "$key=$value"
+            "$key=${value.redactedIfSensitive(key)}"
         }
 
         return try {
@@ -684,7 +688,22 @@ private const val DEFAULT_CRON_HISTORY_LIMIT = 10
 private const val MAX_SUMMARY_LENGTH = 500
 
 private fun errorResult(message: String): CallToolResult =
-    CallToolResult(content = listOf(TextContent(message)))
+    CallToolResult(content = listOf(TextContent(message)), isError = true)
+
+private fun JsonElement.redactedIfSensitive(key: String): String =
+    if (key.isSensitiveArgumentKey()) {
+        "[REDACTED]"
+    } else {
+        toString()
+    }
+
+private fun String.isSensitiveArgumentKey(): Boolean {
+    val normalized = lowercase()
+    return normalized.contains("token") ||
+        normalized.contains("password") ||
+        normalized.contains("secret") ||
+        normalized.contains("credential")
+}
 
 private fun Map<String, JsonElement>?.stringOrNull(key: String): String? =
     this?.get(key)?.run { jsonPrimitive.contentOrNull }
