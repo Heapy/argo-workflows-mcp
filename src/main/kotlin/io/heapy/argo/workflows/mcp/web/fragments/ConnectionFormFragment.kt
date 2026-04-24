@@ -21,7 +21,7 @@ private const val DEFAULT_REQUEST_TIMEOUT_SECONDS = 30L
 
 fun FlowContent.connectionFormFragment(existing: ConnectionRecord? = null) {
     val isEdit = existing != null
-    val action = if (isEdit) "/api/connections/${existing?.id}" else "/api/connections"
+    val action = if (isEdit) "/api/connections/${existing.id}" else "/api/connections"
     val method = if (isEdit) "put" else "post"
 
     form {
