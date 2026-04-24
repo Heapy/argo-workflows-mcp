@@ -4,6 +4,7 @@ import io.heapy.argo.workflows.mcp.repository.ConnectionRecord
 import kotlinx.html.FlowContent
 import kotlinx.html.TBODY
 import kotlinx.html.button
+import kotlinx.html.div
 import kotlinx.html.p
 import kotlinx.html.span
 import kotlinx.html.table
@@ -15,24 +16,28 @@ import kotlinx.html.tr
 
 fun FlowContent.connectionListFragment(connections: List<ConnectionRecord>) {
     if (connections.isEmpty()) {
-        p { +"No connections configured. Add one above." }
+        div(classes = "empty-state") {
+            p { +"No connections configured. Add one above." }
+        }
         return
     }
 
-    table {
-        thead {
-            tr {
-                th { +"Name" }
-                th { +"URL" }
-                th { +"Namespace" }
-                th { +"Auth" }
-                th { +"Status" }
-                th { +"Actions" }
+    div(classes = "table-wrap") {
+        table {
+            thead {
+                tr {
+                    th { +"Name" }
+                    th { +"URL" }
+                    th { +"Namespace" }
+                    th { +"Auth" }
+                    th { +"Status" }
+                    th { +"Actions" }
+                }
             }
-        }
-        tbody {
-            for (conn in connections) {
-                connectionRow(conn)
+            tbody {
+                for (conn in connections) {
+                    connectionRow(conn)
+                }
             }
         }
     }
@@ -56,31 +61,33 @@ private fun TBODY.connectionRow(conn: ConnectionRecord) {
 }
 
 private fun FlowContent.connectionActions(conn: ConnectionRecord) {
-    button {
-        attributes["hx-get"] = "/api/connections/${conn.id}/edit"
-        attributes["hx-target"] = "#connection-form"
-        attributes["hx-swap"] = "innerHTML"
-        +"Edit"
-    }
-    if (!conn.isActive) {
+    div(classes = "table-actions") {
         button {
-            attributes["hx-post"] = "/api/connections/${conn.id}/activate"
+            attributes["hx-get"] = "/api/connections/${conn.id}/edit"
+            attributes["hx-target"] = "#connection-form"
+            attributes["hx-swap"] = "innerHTML"
+            +"Edit"
+        }
+        if (!conn.isActive) {
+            button {
+                attributes["hx-post"] = "/api/connections/${conn.id}/activate"
+                attributes["hx-target"] = "#connections-list"
+                attributes["hx-swap"] = "innerHTML"
+                +"Activate"
+            }
+        }
+        button {
+            attributes["hx-post"] = "/api/test-connection/${conn.id}"
+            attributes["hx-target"] = "#connection-form"
+            attributes["hx-swap"] = "innerHTML"
+            +"Test"
+        }
+        button(classes = "secondary") {
+            attributes["hx-delete"] = "/api/connections/${conn.id}"
             attributes["hx-target"] = "#connections-list"
             attributes["hx-swap"] = "innerHTML"
-            +"Activate"
+            attributes["hx-confirm"] = "Delete connection '${conn.name}'?"
+            +"Delete"
         }
-    }
-    button {
-        attributes["hx-post"] = "/api/test-connection/${conn.id}"
-        attributes["hx-target"] = "#connection-form"
-        attributes["hx-swap"] = "innerHTML"
-        +"Test"
-    }
-    button(classes = "secondary") {
-        attributes["hx-delete"] = "/api/connections/${conn.id}"
-        attributes["hx-target"] = "#connections-list"
-        attributes["hx-swap"] = "innerHTML"
-        attributes["hx-confirm"] = "Delete connection '${conn.name}'?"
-        +"Delete"
     }
 }

@@ -24,24 +24,24 @@ fun FlowContent.connectionFormFragment(existing: ConnectionRecord? = null) {
     val action = if (isEdit) "/api/connections/${existing.id}" else "/api/connections"
     val method = if (isEdit) "put" else "post"
 
-    form {
+    form(classes = "connection-form surface-panel") {
         attributes["hx-$method"] = action
         attributes["hx-target"] = "#connections-list"
         attributes["hx-swap"] = "innerHTML"
 
         h3 { +(if (isEdit) "Edit Connection" else "New Connection") }
 
-        fieldSet {
+        fieldSet(classes = "form-section") {
             legend { +"Connection Details" }
             connectionDetailsFields(existing)
         }
 
-        fieldSet {
+        fieldSet(classes = "form-section") {
             legend { +"Authentication" }
             authFields(existing)
         }
 
-        fieldSet {
+        fieldSet(classes = "form-section") {
             legend { +"Advanced" }
             advancedFields(existing)
         }
@@ -143,9 +143,9 @@ private fun FlowContent.advancedFields(existing: ConnectionRecord?) {
 }
 
 private fun FlowContent.formButtons(isEdit: Boolean) {
-    div {
+    div(classes = "form-actions") {
         button { +(if (isEdit) "Update" else "Create") }
-        button(type = ButtonType.button) {
+        button(classes = "secondary", type = ButtonType.button) {
             attributes["onclick"] = "document.getElementById('connection-form').innerHTML=''"
             +"Cancel"
         }
