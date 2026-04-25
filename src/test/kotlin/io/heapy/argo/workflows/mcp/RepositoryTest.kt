@@ -3,6 +3,7 @@ package io.heapy.argo.workflows.mcp
 import io.heapy.argo.workflows.mcp.repository.AuditLogRecord
 import io.heapy.argo.workflows.mcp.repository.ConnectionRecord
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -79,6 +80,38 @@ class RepositoryTest {
         repos.connectionRepo.activate(id2)
         assertEquals(id2, repos.connectionRepo.findActive()?.id)
         assertEquals(false, repos.connectionRepo.findById(id1)?.isActive)
+    }
+
+    @Test
+    fun `invalid connection activation keeps current active connection`() {
+        val repos = createTestRepositories()
+        val now = LocalDateTime.now()
+
+        val base = ConnectionRecord(
+            id = 0,
+            name = "",
+            baseUrl = "https://argo.example.com",
+            defaultNamespace = "default",
+            authType = "none",
+            bearerToken = null,
+            username = null,
+            password = null,
+            insecureSkipTlsVerify = false,
+            requestTimeoutSeconds = 30,
+            tlsServerName = null,
+            isActive = false,
+            createdAt = now,
+            updatedAt = now,
+        )
+
+        val activeId = repos.connectionRepo.create(base.copy(name = "active", isActive = true))
+        val inactiveId = repos.connectionRepo.create(base.copy(name = "inactive"))
+
+        assertFalse(repos.connectionRepo.activate(Int.MAX_VALUE))
+
+        assertEquals(activeId, repos.connectionRepo.findActive()?.id)
+        assertEquals(true, repos.connectionRepo.findById(activeId)?.isActive)
+        assertEquals(false, repos.connectionRepo.findById(inactiveId)?.isActive)
     }
 
     @Test

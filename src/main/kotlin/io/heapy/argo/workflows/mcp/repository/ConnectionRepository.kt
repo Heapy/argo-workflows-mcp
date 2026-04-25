@@ -88,14 +88,20 @@ class ConnectionRepository(private val database: Database) {
     }
 
     fun activate(id: Int): Boolean = transaction(database) {
-        // Deactivate all
-        ConnectionsTable.update({ ConnectionsTable.isActive eq true }) {
-            it[isActive] = false
+        val targetExists = ConnectionsTable.selectAll()
+            .where { ConnectionsTable.id eq id }
+            .singleOrNull() != null
+
+        if (targetExists) {
+            ConnectionsTable.update({ ConnectionsTable.isActive eq true }) {
+                it[isActive] = false
+            }
+            ConnectionsTable.update({ ConnectionsTable.id eq id }) {
+                it[isActive] = true
+            } > 0
+        } else {
+            false
         }
-        // Activate the selected one
-        ConnectionsTable.update({ ConnectionsTable.id eq id }) {
-            it[isActive] = true
-        } > 0
     }
 
     private fun ResultRow.toConnectionRecord() = ConnectionRecord(
