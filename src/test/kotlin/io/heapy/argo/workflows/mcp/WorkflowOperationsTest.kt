@@ -20,11 +20,15 @@ class WorkflowOperationsTest {
         allowDestructive: Boolean = false,
         allowMutations: Boolean = false,
         requireConfirmation: Boolean = true,
+        namespacesAllow: String = "*",
+        namespacesDeny: String = "",
     ) = WorkflowOperations(
         defaultNamespace = "default",
         allowDestructive = allowDestructive,
         allowMutations = allowMutations,
         requireConfirmation = requireConfirmation,
+        namespacesAllow = namespacesAllow,
+        namespacesDeny = namespacesDeny,
         argoClient = fakeClient,
     )
 
@@ -60,6 +64,28 @@ class WorkflowOperationsTest {
         assertEquals("1", success.data["count"])
         assertTrue(success.data["workflows"]?.contains("wf-succeeded") ?: false)
         assertFalse(success.data["workflows"]?.contains("wf-running") ?: false)
+    }
+
+    @Test
+    fun `listWorkflows rejects namespace outside allow list`() = runTest {
+        val ops = createOps(namespacesAllow = "team-a, team-b")
+
+        val result = ops.listWorkflows(namespace = "kube-system")
+
+        assertTrue(result is OperationResult.Error)
+        val error = result as OperationResult.Error
+        assertEquals("NAMESPACE_DENIED", error.code)
+        assertTrue(error.message.contains("kube-system"))
+    }
+
+    @Test
+    fun `listWorkflows lets deny list override wildcard allow`() = runTest {
+        val ops = createOps(namespacesAllow = "*", namespacesDeny = "prod")
+
+        val result = ops.listWorkflows(namespace = "prod")
+
+        assertTrue(result is OperationResult.Error)
+        assertEquals("NAMESPACE_DENIED", (result as OperationResult.Error).code)
     }
 
     @Test
@@ -186,5 +212,22 @@ class WorkflowOperationsTest {
         assertTrue(result is OperationResult.DryRun)
         val dryRun = result as OperationResult.DryRun
         assertTrue(dryRun.preview.contains("Would terminate"))
+    }
+
+    @Test
+    fun `retryWorkflow rejects denied namespace before mutation handling`() = runTest {
+        val ops = createOps(
+            allowMutations = true,
+            namespacesAllow = "default",
+            namespacesDeny = "blocked",
+        )
+
+        val result = ops.retryWorkflow(
+            namespace = "blocked",
+            name = "test-workflow",
+        )
+
+        assertTrue(result is OperationResult.Error)
+        assertEquals("NAMESPACE_DENIED", (result as OperationResult.Error).code)
     }
 }

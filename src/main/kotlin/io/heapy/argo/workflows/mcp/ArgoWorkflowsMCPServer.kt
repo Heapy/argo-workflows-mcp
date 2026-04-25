@@ -125,6 +125,8 @@ class ArgoWorkflowsMCPServer(
         allowDestructive = settingsRepo.getAllowDestructive(),
         allowMutations = settingsRepo.getAllowMutations(),
         requireConfirmation = settingsRepo.getRequireConfirmation(),
+        namespacesAllow = settingsRepo.getNamespacesAllow(),
+        namespacesDeny = settingsRepo.getNamespacesDeny(),
         argoClient = client,
     )
 

@@ -13,6 +13,8 @@ class WorkflowOperations(
     private val allowDestructive: Boolean,
     private val allowMutations: Boolean,
     private val requireConfirmation: Boolean,
+    private val namespacesAllow: String = "*",
+    private val namespacesDeny: String = "",
     private val argoClient: ArgoWorkflowsClient,
 ) {
     private companion object : Logger()
@@ -20,12 +22,28 @@ class WorkflowOperations(
     private fun resolveNamespace(namespace: String?): String =
         namespace?.takeIf { it.isNotBlank() } ?: defaultNamespace
 
+    private fun requireNamespaceAllowed(namespace: String): OperationResult.Error? {
+        val allowedNamespaces = namespacesAllow.toNamespaceSet()
+        val deniedNamespaces = namespacesDeny.toNamespaceSet()
+        val isAllowed = "*" in allowedNamespaces || namespace in allowedNamespaces
+        val isDenied = namespace in deniedNamespaces
+        return if (isAllowed && !isDenied) {
+            null
+        } else {
+            OperationResult.Error(
+                message = "Namespace '$namespace' is not allowed by configuration",
+                code = ERROR_CODE_NAMESPACE_DENIED,
+            )
+        }
+    }
+
     suspend fun listWorkflows(
         namespace: String? = null,
         status: String? = null,
         limit: Int = 50,
     ): OperationResult {
         val targetNamespace = resolveNamespace(namespace)
+        requireNamespaceAllowed(targetNamespace)?.let { return it }
         log.info("Listing workflows: namespace=$targetNamespace, status=$status, limit=$limit")
 
         return runCatching {
@@ -65,6 +83,7 @@ class WorkflowOperations(
         name: String,
     ): OperationResult {
         val targetNamespace = resolveNamespace(namespace)
+        requireNamespaceAllowed(targetNamespace)?.let { return it }
         log.info("Getting workflow: namespace=$targetNamespace, name=$name")
 
         return runCatching {
@@ -126,6 +145,7 @@ class WorkflowOperations(
         maxLines: Int = DEFAULT_LOG_LINE_LIMIT,
     ): OperationResult {
         val targetNamespace = resolveNamespace(namespace)
+        requireNamespaceAllowed(targetNamespace)?.let { return it }
         log.info(
             "Getting logs: namespace={}, workflow={}, pod={}, container={}, search='{}', maxLines={}",
             targetNamespace,
@@ -195,7 +215,9 @@ class WorkflowOperations(
         dryRun: Boolean = true,
         confirmationToken: String? = null,
     ): OperationResult {
-        log.info("Terminating workflow: namespace=$namespace, name=$name, reason=$reason, dryRun=$dryRun")
+        val targetNamespace = resolveNamespace(namespace)
+        requireNamespaceAllowed(targetNamespace)?.let { return it }
+        log.info("Terminating workflow: namespace=$targetNamespace, name=$name, reason=$reason, dryRun=$dryRun")
 
         return when {
             !allowDestructive -> OperationResult.Error(
@@ -206,7 +228,7 @@ class WorkflowOperations(
             dryRun -> OperationResult.DryRun(
                 preview = """
                     Mock: Would terminate workflow
-                    - Namespace: $namespace
+                    - Namespace: $targetNamespace
                     - Workflow: $name
                     - Reason: $reason
                     - Running pods: 3
@@ -224,7 +246,7 @@ class WorkflowOperations(
             else -> OperationResult.Success(
                 message = "Mock: Workflow terminated successfully",
                 data = mapOf(
-                    "namespace" to namespace,
+                    "namespace" to targetNamespace,
                     "workflow" to name,
                     "action" to "terminated",
                 ),
@@ -237,28 +259,38 @@ class WorkflowOperations(
         name: String,
         restartSuccessful: Boolean = false,
     ): OperationResult {
-        log.info("Retrying workflow: namespace=$namespace, name=$name, restartSuccessful=$restartSuccessful")
+        val targetNamespace = resolveNamespace(namespace)
+        val namespaceError = requireNamespaceAllowed(targetNamespace)
+        log.info("Retrying workflow: namespace=$targetNamespace, name=$name, restartSuccessful=$restartSuccessful")
 
-        if (!allowMutations) {
-            return OperationResult.Error(
+        return when {
+            namespaceError != null -> namespaceError
+
+            !allowMutations -> OperationResult.Error(
                 message = "Mutation operations are not allowed by configuration",
                 code = "PERMISSION_DENIED",
             )
-        }
 
-        return OperationResult.Success(
-            message = "Mock: Workflow retry initiated",
-            data = mapOf(
-                "namespace" to namespace,
-                "originalWorkflow" to name,
-                "newWorkflow" to "$name-retry-1",
-            ),
-        )
+            else -> OperationResult.Success(
+                message = "Mock: Workflow retry initiated",
+                data = mapOf(
+                    "namespace" to targetNamespace,
+                    "originalWorkflow" to name,
+                    "newWorkflow" to "$name-retry-1",
+                ),
+            )
+        }
     }
 }
 
 private const val ERROR_CODE_ARGO_API = "ARGO_API_ERROR"
+private const val ERROR_CODE_NAMESPACE_DENIED = "NAMESPACE_DENIED"
 private const val DEFAULT_LOG_LINE_LIMIT = 200
+
+private fun String.toNamespaceSet(): Set<String> =
+    split(',')
+        .map { it.trim() }
+        .filterTo(mutableSetOf()) { it.isNotEmpty() }
 
 private fun WorkflowSummary.toDisplayString(): String = buildString {
     append(name)
