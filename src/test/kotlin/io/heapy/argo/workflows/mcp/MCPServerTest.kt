@@ -1,5 +1,6 @@
 package io.heapy.argo.workflows.mcp
 
+import io.heapy.argo.workflows.mcp.repository.ConnectionRecord
 import io.modelcontextprotocol.kotlin.sdk.server.ClientConnection
 import io.modelcontextprotocol.kotlin.sdk.shared.RequestOptions
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.LocalDateTime
 
 class MCPServerTest {
     @Test
@@ -112,6 +114,87 @@ class MCPServerTest {
         assertEquals("add_connection", auditRecord.toolName)
         assertTrue(auditRecord.arguments.contains("bearer_token=[REDACTED]"))
         assertFalse(auditRecord.arguments.contains("secret-token"))
+    }
+
+    @Test
+    fun `active connection edits recreate cached client`() = runTest {
+        val repos = createTestRepositories()
+        val connectionId = repos.connectionRepo.create(
+            testConnectionRecord(baseUrl = "https://argo-old.example.com"),
+        )
+        val createdFor = mutableListOf<ConnectionRecord>()
+        val mcpServer = ArgoWorkflowsMCPServer(
+            connectionRepo = repos.connectionRepo,
+            settingsRepo = repos.settingsRepo,
+            auditLogRepo = repos.auditLogRepo,
+            clientFactory = { connection ->
+                createdFor += connection
+                FakeArgoWorkflowsClient()
+            },
+        )
+        val server = mcpServer.createServer()
+        val listWorkflows = server.tools["list_workflows"]
+        assertNotNull(listWorkflows)
+
+        val firstResult = listWorkflows?.handler?.invoke(
+            UnusedClientConnection,
+            CallToolRequest(
+                CallToolRequestParams(
+                    name = "list_workflows",
+                    arguments = buildJsonObject {},
+                ),
+            ),
+        )
+
+        assertEquals(false, firstResult?.isError)
+        assertEquals(listOf("https://argo-old.example.com"), createdFor.map { it.baseUrl })
+        assertEquals(listOf("initial-token"), createdFor.map { it.bearerToken })
+
+        val activeConnection = requireNotNull(repos.connectionRepo.findById(connectionId))
+        repos.connectionRepo.update(
+            connectionId,
+            activeConnection.copy(
+                baseUrl = "https://argo-new.example.com",
+                bearerToken = "updated-token",
+            ),
+        )
+
+        val secondResult = listWorkflows?.handler?.invoke(
+            UnusedClientConnection,
+            CallToolRequest(
+                CallToolRequestParams(
+                    name = "list_workflows",
+                    arguments = buildJsonObject {},
+                ),
+            ),
+        )
+
+        assertEquals(false, secondResult?.isError)
+        assertEquals(
+            listOf("https://argo-old.example.com", "https://argo-new.example.com"),
+            createdFor.map { it.baseUrl },
+        )
+        assertEquals(listOf("initial-token", "updated-token"), createdFor.map { it.bearerToken })
+    }
+
+    private fun testConnectionRecord(baseUrl: String): ConnectionRecord {
+        val now = LocalDateTime.now()
+        return ConnectionRecord(
+            id = 0,
+            name = "active",
+            baseUrl = baseUrl,
+            defaultNamespace = "default",
+            authType = "bearer",
+            bearerToken = "initial-token",
+            username = null,
+            password = null,
+            insecureSkipTlsVerify = false,
+            requestTimeoutSeconds = 30,
+            tlsServerName = null,
+            isActive = true,
+            createdAt = now,
+            updatedAt = now,
+        )
     }
 
     private object UnusedClientConnection : ClientConnection {

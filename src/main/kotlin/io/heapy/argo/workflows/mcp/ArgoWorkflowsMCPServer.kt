@@ -48,20 +48,32 @@ class ArgoWorkflowsMCPServer(
     private companion object : Logger()
 
     private var currentClient: ArgoWorkflowsClient? = null
-    private var currentConnectionId: Int? = null
+    private var currentClientCacheKey: ConnectionClientCacheKey? = null
 
     private fun getClientAndConfig(): Pair<ArgoWorkflowsClient, ConnectionRecord>? {
-        val activeConn = connectionRepo.findActive() ?: return null
+        val activeConn = connectionRepo.findActive()
+        if (activeConn == null) {
+            clearCurrentClient()
+            return null
+        }
+
         val client = currentClient
-        return if (client != null && currentConnectionId == activeConn.id) {
+        val cacheKey = activeConn.toClientCacheKey()
+        return if (client != null && currentClientCacheKey == cacheKey) {
             client to activeConn
         } else {
-            currentClient?.close()
+            clearCurrentClient()
             val newClient = clientFactory(activeConn)
             currentClient = newClient
-            currentConnectionId = activeConn.id
+            currentClientCacheKey = cacheKey
             newClient to activeConn
         }
+    }
+
+    private fun clearCurrentClient() {
+        currentClient?.close()
+        currentClient = null
+        currentClientCacheKey = null
     }
 
     private fun noConnectionResult(): CallToolResult = CallToolResult(
@@ -114,7 +126,7 @@ class ArgoWorkflowsMCPServer(
     }
 
     override fun close() {
-        currentClient?.close()
+        clearCurrentClient()
     }
 
     private fun createWorkflowOps(
@@ -718,6 +730,32 @@ private fun Map<String, JsonElement>?.intOrNull(key: String): Int? =
 
 private fun Map<String, JsonElement>?.booleanOrNull(key: String): Boolean? =
     this?.get(key)?.run { jsonPrimitive.booleanOrNull }
+
+private data class ConnectionClientCacheKey(
+    val id: Int,
+    val baseUrl: String,
+    val defaultNamespace: String,
+    val authType: String,
+    val bearerToken: String?,
+    val username: String?,
+    val password: String?,
+    val insecureSkipTlsVerify: Boolean,
+    val requestTimeoutSeconds: Long,
+    val tlsServerName: String?,
+)
+
+private fun ConnectionRecord.toClientCacheKey() = ConnectionClientCacheKey(
+    id = id,
+    baseUrl = baseUrl,
+    defaultNamespace = defaultNamespace,
+    authType = authType,
+    bearerToken = bearerToken,
+    username = username,
+    password = password,
+    insecureSkipTlsVerify = insecureSkipTlsVerify,
+    requestTimeoutSeconds = requestTimeoutSeconds,
+    tlsServerName = tlsServerName,
+)
 
 fun ConnectionRecord.toArgoClientConfig() = ArgoClientConfig(
     baseUrl = baseUrl,
