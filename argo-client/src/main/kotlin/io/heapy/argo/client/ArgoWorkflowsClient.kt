@@ -35,6 +35,55 @@ interface ArgoWorkflowsClient : Closeable {
         podName: String? = null,
         container: String = "main"
     ): WorkflowLogs
+
+    suspend fun terminateWorkflow(
+        namespace: String,
+        name: String
+    ): WorkflowSummary
+
+    suspend fun retryWorkflow(
+        namespace: String,
+        name: String,
+        restartSuccessful: Boolean = false
+    ): WorkflowSummary
+
+    suspend fun listCronWorkflows(
+        namespace: String,
+        labelSelector: String? = null
+    ): List<CronWorkflowSummary>
+
+    suspend fun getCronWorkflow(
+        namespace: String,
+        name: String
+    ): CronWorkflowDetail
+
+    suspend fun suspendCronWorkflow(
+        namespace: String,
+        name: String
+    ): CronWorkflowSummary
+
+    suspend fun resumeCronWorkflow(
+        namespace: String,
+        name: String
+    ): CronWorkflowSummary
+
+    suspend fun listWorkflowTemplates(
+        namespace: String,
+        labelSelector: String? = null
+    ): List<WorkflowTemplateSummary>
+
+    suspend fun getWorkflowTemplate(
+        namespace: String,
+        name: String
+    ): WorkflowTemplateDetail
+
+    suspend fun listClusterWorkflowTemplates(
+        labelSelector: String? = null
+    ): List<WorkflowTemplateSummary>
+
+    suspend fun getClusterWorkflowTemplate(
+        name: String
+    ): WorkflowTemplateDetail
 }
 
 data class WorkflowSummary(
@@ -63,4 +112,40 @@ data class WorkflowLogs(
 data class WorkflowLogEntry(
     val podName: String?,
     val content: String
+)
+
+data class CronWorkflowSummary(
+    val name: String,
+    val namespace: String,
+    val schedules: List<String>,
+    val suspended: Boolean?,
+    val timezone: String?,
+    val lastScheduledTime: Instant?,
+    val activeWorkflows: List<String>,
+    val phase: String?
+)
+
+data class CronWorkflowDetail(
+    val summary: CronWorkflowSummary,
+    val concurrencyPolicy: String?,
+    val successfulJobsHistoryLimit: Int?,
+    val failedJobsHistoryLimit: Int?,
+    val labels: Map<String, String>,
+    val annotations: Map<String, String>,
+    val raw: JsonObject
+)
+
+data class WorkflowTemplateSummary(
+    val name: String,
+    val namespace: String?,
+    val entrypoint: String?,
+    val templateCount: Int,
+    val labels: Map<String, String>
+)
+
+data class WorkflowTemplateDetail(
+    val summary: WorkflowTemplateSummary,
+    val parameters: Map<String, String>,
+    val annotations: Map<String, String>,
+    val raw: JsonObject
 )

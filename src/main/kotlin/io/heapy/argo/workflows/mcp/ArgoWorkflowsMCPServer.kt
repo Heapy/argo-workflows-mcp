@@ -142,8 +142,25 @@ class ArgoWorkflowsMCPServer(
         argoClient = client,
     )
 
-    private fun createCronOps(): CronWorkflowOperations = CronWorkflowOperations(
+    private fun createCronOps(
+        client: ArgoWorkflowsClient,
+        conn: ConnectionRecord,
+    ): CronWorkflowOperations = CronWorkflowOperations(
+        defaultNamespace = conn.defaultNamespace,
         allowMutations = settingsRepo.getAllowMutations(),
+        namespacesAllow = settingsRepo.getNamespacesAllow(),
+        namespacesDeny = settingsRepo.getNamespacesDeny(),
+        argoClient = client,
+    )
+
+    private fun createTemplateOps(
+        client: ArgoWorkflowsClient,
+        conn: ConnectionRecord,
+    ): TemplateOperations = TemplateOperations(
+        defaultNamespace = conn.defaultNamespace,
+        namespacesAllow = settingsRepo.getNamespacesAllow(),
+        namespacesDeny = settingsRepo.getNamespacesDeny(),
+        argoClient = client,
     )
 
     private suspend fun withAudit(
@@ -434,7 +451,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("list_cron_workflows", request.arguments) {
-                val cronOps = createCronOps()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val cronOps = createCronOps(client, conn)
                 val namespace = request.arguments.stringOrNull("namespace")
                 val suspended = request.arguments.booleanOrNull("suspended")
                 convertToToolResult(cronOps.listCronWorkflows(namespace, suspended))
@@ -461,7 +479,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("get_cron_workflow", request.arguments) {
-                val cronOps = createCronOps()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val cronOps = createCronOps(client, conn)
                 val namespace = request.arguments.requiredString("namespace")
                     ?: return@withAudit errorResult("namespace is required")
                 val name = request.arguments.requiredString("name")
@@ -495,7 +514,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("get_cron_history", request.arguments) {
-                val cronOps = createCronOps()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val cronOps = createCronOps(client, conn)
                 val namespace = request.arguments.requiredString("namespace")
                     ?: return@withAudit errorResult("namespace is required")
                 val name = request.arguments.requiredString("name")
@@ -529,7 +549,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("toggle_cron_suspension", request.arguments) {
-                val cronOps = createCronOps()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val cronOps = createCronOps(client, conn)
                 val namespace = request.arguments.requiredString("namespace")
                     ?: return@withAudit errorResult("namespace is required")
                 val name = request.arguments.requiredString("name")
@@ -560,7 +581,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("list_workflow_templates", request.arguments) {
-                val templateOps = TemplateOperations()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val templateOps = createTemplateOps(client, conn)
                 val namespace = request.arguments.stringOrNull("namespace")
                 val labelSelector = request.arguments.stringOrNull("label_selector")
                 convertToToolResult(templateOps.listWorkflowTemplates(namespace, labelSelector))
@@ -587,7 +609,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("get_workflow_template", request.arguments) {
-                val templateOps = TemplateOperations()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val templateOps = createTemplateOps(client, conn)
                 val namespace = request.arguments.requiredString("namespace")
                     ?: return@withAudit errorResult("namespace is required")
                 val name = request.arguments.requiredString("name")
@@ -611,7 +634,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("list_cluster_workflow_templates", request.arguments) {
-                val templateOps = TemplateOperations()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val templateOps = createTemplateOps(client, conn)
                 val labelSelector = request.arguments.stringOrNull("label_selector")
                 convertToToolResult(templateOps.listClusterWorkflowTemplates(labelSelector))
             }
@@ -633,7 +657,8 @@ class ArgoWorkflowsMCPServer(
             ),
         ) { request ->
             withAudit("get_cluster_workflow_template", request.arguments) {
-                val templateOps = TemplateOperations()
+                val (client, conn) = getClientAndConfig() ?: return@withAudit noConnectionResult()
+                val templateOps = createTemplateOps(client, conn)
                 val name = request.arguments.requiredString("name")
                     ?: return@withAudit errorResult("name is required")
                 convertToToolResult(templateOps.getClusterWorkflowTemplate(name))

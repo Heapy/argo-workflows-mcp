@@ -19,6 +19,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.PingRequest
 import io.modelcontextprotocol.kotlin.sdk.types.RequestId
 import io.modelcontextprotocol.kotlin.sdk.types.ResourceUpdatedNotification
 import io.modelcontextprotocol.kotlin.sdk.types.ServerNotification
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -175,6 +176,42 @@ class MCPServerTest {
             createdFor.map { it.baseUrl },
         )
         assertEquals(listOf("initial-token", "updated-token"), createdFor.map { it.bearerToken })
+    }
+
+    @Test
+    fun `cron and template tools require active Argo connection`() = runTest {
+        val repos = createTestRepositories()
+        val mcpServer = ArgoWorkflowsMCPServer(
+            connectionRepo = repos.connectionRepo,
+            settingsRepo = repos.settingsRepo,
+            auditLogRepo = repos.auditLogRepo,
+            clientFactory = { FakeArgoWorkflowsClient() },
+        )
+        val server = mcpServer.createServer()
+
+        val cronResult = server.tools["list_cron_workflows"]?.handler?.invoke(
+            UnusedClientConnection,
+            CallToolRequest(
+                CallToolRequestParams(
+                    name = "list_cron_workflows",
+                    arguments = buildJsonObject {},
+                ),
+            ),
+        )
+        val templateResult = server.tools["list_workflow_templates"]?.handler?.invoke(
+            UnusedClientConnection,
+            CallToolRequest(
+                CallToolRequestParams(
+                    name = "list_workflow_templates",
+                    arguments = buildJsonObject {},
+                ),
+            ),
+        )
+
+        assertEquals(true, cronResult?.isError)
+        assertEquals(true, templateResult?.isError)
+        assertTrue(cronResult?.content?.filterIsInstance<TextContent>()?.single()?.text?.contains("No active Argo") == true)
+        assertTrue(templateResult?.content?.filterIsInstance<TextContent>()?.single()?.text?.contains("No active Argo") == true)
     }
 
     private fun testConnectionRecord(baseUrl: String): ConnectionRecord {

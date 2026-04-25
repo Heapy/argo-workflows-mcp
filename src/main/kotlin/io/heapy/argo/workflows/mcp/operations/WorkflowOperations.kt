@@ -4,9 +4,6 @@ import io.heapy.argo.client.ArgoWorkflowsClient
 import io.heapy.argo.client.WorkflowLogs
 import io.heapy.argo.client.WorkflowSummary
 import io.heapy.komok.tech.logging.Logger
-import kotlin.time.Clock
-import kotlin.time.Duration
-import kotlin.time.Instant
 
 class WorkflowOperations(
     private val defaultNamespace: String,
@@ -22,20 +19,8 @@ class WorkflowOperations(
     private fun resolveNamespace(namespace: String?): String =
         namespace?.takeIf { it.isNotBlank() } ?: defaultNamespace
 
-    private fun requireNamespaceAllowed(namespace: String): OperationResult.Error? {
-        val allowedNamespaces = namespacesAllow.toNamespaceSet()
-        val deniedNamespaces = namespacesDeny.toNamespaceSet()
-        val isAllowed = "*" in allowedNamespaces || namespace in allowedNamespaces
-        val isDenied = namespace in deniedNamespaces
-        return if (isAllowed && !isDenied) {
-            null
-        } else {
-            OperationResult.Error(
-                message = "Namespace '$namespace' is not allowed by configuration",
-                code = ERROR_CODE_NAMESPACE_DENIED,
-            )
-        }
-    }
+    private fun requireNamespaceAllowed(namespace: String): OperationResult.Error? =
+        namespaceDeniedError(namespace, namespacesAllow, namespacesDeny)
 
     suspend fun listWorkflows(
         namespace: String? = null,
@@ -208,7 +193,7 @@ class WorkflowOperations(
         }
     }
 
-    fun terminateWorkflow(
+    suspend fun terminateWorkflow(
         namespace: String,
         name: String,
         reason: String,
@@ -219,42 +204,57 @@ class WorkflowOperations(
         requireNamespaceAllowed(targetNamespace)?.let { return it }
         log.info("Terminating workflow: namespace=$targetNamespace, name=$name, reason=$reason, dryRun=$dryRun")
 
+        val expectedToken = confirmationTokenFor(targetNamespace, name)
+
         return when {
             !allowDestructive -> OperationResult.Error(
                 message = "Destructive operations are not allowed by configuration",
-                code = "PERMISSION_DENIED",
+                code = ERROR_CODE_PERMISSION_DENIED,
             )
 
             dryRun -> OperationResult.DryRun(
                 preview = """
-                    Mock: Would terminate workflow
+                    Would request workflow termination from Argo
                     - Namespace: $targetNamespace
                     - Workflow: $name
                     - Reason: $reason
-                    - Running pods: 3
-                    - Impact: All pods will be stopped immediately
+                    - Impact: Argo will stop the workflow according to its terminate behavior
                 """.trimIndent(),
-                instructions = "Call again with dryRun=false and confirmationToken='mock-token-123'",
+                instructions = "Call again with dryRun=false and confirmationToken='$expectedToken'",
             )
 
             requireConfirmation && confirmationToken == null ->
                 OperationResult.NeedsConfirmation(
-                    preview = "Mock: Workflow $name will be terminated",
-                    token = "mock-token-123",
+                    preview = "Workflow '$name' in namespace '$targetNamespace' will be terminated by Argo",
+                    token = expectedToken,
                 )
 
-            else -> OperationResult.Success(
-                message = "Mock: Workflow terminated successfully",
-                data = mapOf(
-                    "namespace" to targetNamespace,
-                    "workflow" to name,
-                    "action" to "terminated",
-                ),
-            )
+            requireConfirmation && confirmationToken != expectedToken ->
+                OperationResult.Error(
+                    message = "Invalid confirmation token for workflow '$targetNamespace/$name'",
+                    code = ERROR_CODE_PERMISSION_DENIED,
+                )
+
+            else -> runCatching {
+                val workflow = argoClient.terminateWorkflow(targetNamespace, name)
+                OperationResult.Success(
+                    message = "Workflow '${workflow.name}' termination requested",
+                    data = mapOf(
+                        "namespace" to workflow.namespace,
+                        "workflow" to workflow.name,
+                        "status" to (workflow.phase ?: "Unknown"),
+                        "reason" to reason,
+                        "action" to "terminated",
+                    ),
+                )
+            }.getOrElse { error ->
+                log.error("Failed to terminate workflow namespace={}, name={}", targetNamespace, name, error)
+                error.toOperationError("terminate workflow")
+            }
         }
     }
 
-    fun retryWorkflow(
+    suspend fun retryWorkflow(
         namespace: String,
         name: String,
         restartSuccessful: Boolean = false,
@@ -268,29 +268,32 @@ class WorkflowOperations(
 
             !allowMutations -> OperationResult.Error(
                 message = "Mutation operations are not allowed by configuration",
-                code = "PERMISSION_DENIED",
+                code = ERROR_CODE_PERMISSION_DENIED,
             )
 
-            else -> OperationResult.Success(
-                message = "Mock: Workflow retry initiated",
-                data = mapOf(
-                    "namespace" to targetNamespace,
-                    "originalWorkflow" to name,
-                    "newWorkflow" to "$name-retry-1",
-                ),
-            )
+            else -> runCatching {
+                val workflow = argoClient.retryWorkflow(targetNamespace, name, restartSuccessful)
+                OperationResult.Success(
+                    message = "Workflow '${workflow.name}' retry requested",
+                    data = mapOf(
+                        "namespace" to workflow.namespace,
+                        "workflow" to workflow.name,
+                        "status" to (workflow.phase ?: "Unknown"),
+                        "restart_successful" to restartSuccessful.toString(),
+                    ),
+                )
+            }.getOrElse { error ->
+                log.error("Failed to retry workflow namespace={}, name={}", targetNamespace, name, error)
+                error.toOperationError("retry workflow")
+            }
         }
     }
 }
 
-private const val ERROR_CODE_ARGO_API = "ARGO_API_ERROR"
-private const val ERROR_CODE_NAMESPACE_DENIED = "NAMESPACE_DENIED"
-private const val DEFAULT_LOG_LINE_LIMIT = 200
+private fun confirmationTokenFor(namespace: String, name: String): String =
+    "terminate:$namespace:$name"
 
-private fun String.toNamespaceSet(): Set<String> =
-    split(',')
-        .map { it.trim() }
-        .filterTo(mutableSetOf()) { it.isNotEmpty() }
+private const val DEFAULT_LOG_LINE_LIMIT = 200
 
 private fun WorkflowSummary.toDisplayString(): String = buildString {
     append(name)
@@ -359,33 +362,6 @@ private fun WorkflowLogs.formatForDisplay(
         totalLines = total,
         matchedLines = matched,
         returnedLines = subset.size,
-    )
-}
-
-private fun formatDuration(startedAt: Instant?, finishedAt: Instant?): String? {
-    val start = startedAt ?: return null
-    val duration = (finishedAt ?: Clock.System.now()) - start
-    return duration.takeIf { !it.isNegative() }?.formatParts()
-}
-
-private fun Duration.formatParts(): String =
-    toComponents { days, hours, minutes, seconds, _ ->
-        buildList {
-            if (days > 0L) add("${days}d")
-            if (hours > 0) add("${hours}h")
-            if (minutes > 0) add("${minutes}m")
-            if (seconds > 0 || isEmpty()) add("${seconds}s")
-        }.joinToString(" ")
-    }
-
-private fun formatInstant(instant: Instant?): String =
-    instant?.toString() ?: "n/a"
-
-private fun Throwable.toOperationError(action: String): OperationResult.Error {
-    val detail = message?.takeIf { it.isNotBlank() } ?: this::class.simpleName ?: "unknown error"
-    return OperationResult.Error(
-        message = "Failed to $action: $detail",
-        code = ERROR_CODE_ARGO_API,
     )
 }
 

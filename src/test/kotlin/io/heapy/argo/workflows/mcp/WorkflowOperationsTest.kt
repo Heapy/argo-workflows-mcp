@@ -211,7 +211,30 @@ class WorkflowOperationsTest {
 
         assertTrue(result is OperationResult.DryRun)
         val dryRun = result as OperationResult.DryRun
-        assertTrue(dryRun.preview.contains("Would terminate"))
+        assertTrue(dryRun.preview.contains("Would request workflow termination from Argo"))
+    }
+
+    @Test
+    fun `terminateWorkflow calls Argo after confirmation`() = runTest {
+        val fakeClient = FakeArgoWorkflowsClient()
+        val ops = createOps(
+            fakeClient = fakeClient,
+            allowDestructive = true,
+            requireConfirmation = true,
+        )
+
+        val result = ops.terminateWorkflow(
+            namespace = "default",
+            name = "test-workflow",
+            reason = "test",
+            dryRun = false,
+            confirmationToken = "terminate:default:test-workflow",
+        )
+
+        assertTrue(result is OperationResult.Success)
+        val success = result as OperationResult.Success
+        assertEquals("terminated", success.data["action"])
+        assertEquals(listOf("terminateWorkflow:default:test-workflow"), fakeClient.calls)
     }
 
     @Test
@@ -229,5 +252,25 @@ class WorkflowOperationsTest {
 
         assertTrue(result is OperationResult.Error)
         assertEquals("NAMESPACE_DENIED", (result as OperationResult.Error).code)
+    }
+
+    @Test
+    fun `retryWorkflow calls Argo when mutations enabled`() = runTest {
+        val fakeClient = FakeArgoWorkflowsClient()
+        val ops = createOps(
+            fakeClient = fakeClient,
+            allowMutations = true,
+        )
+
+        val result = ops.retryWorkflow(
+            namespace = "default",
+            name = "test-workflow",
+            restartSuccessful = true,
+        )
+
+        assertTrue(result is OperationResult.Success)
+        val success = result as OperationResult.Success
+        assertEquals("true", success.data["restart_successful"])
+        assertEquals(listOf("retryWorkflow:default:test-workflow:true"), fakeClient.calls)
     }
 }
