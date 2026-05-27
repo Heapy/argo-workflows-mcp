@@ -1,14 +1,25 @@
 package io.heapy.argo.client
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.accept
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
+import io.ktor.http.encodeURLPath
+import io.ktor.http.isSuccess
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -51,7 +62,7 @@ class ArgoWorkflowsHttpClient private constructor(
         }
 
         val payload = response.expectJson()
-        val items = payload["items"]?.jsonArray ?: JsonArray(emptyList())
+        val items = (payload["items"] as? JsonArray) ?: JsonArray(emptyList())
 
         return items.mapNotNull { entry ->
             entry.toWorkflowSummary(config.defaultNamespace)
@@ -90,10 +101,11 @@ class ArgoWorkflowsHttpClient private constructor(
         podName: String?,
         container: String
     ): WorkflowLogs {
-        val response = httpClient.get("/api/v1/workflows/${namespace.encodeURLPath()}/${workflowName.encodeURLPath()}/log") {
-            podName?.let { parameter("podName", it) }
-            parameter("logOptions.container", container)
-        }
+        val response =
+            httpClient.get("/api/v1/workflows/${namespace.encodeURLPath()}/${workflowName.encodeURLPath()}/log") {
+                podName?.let { parameter("podName", it) }
+                parameter("logOptions.container", container)
+            }
 
         val bodyText = response.expectText()
         val entries = bodyText.lineSequence()
@@ -159,7 +171,7 @@ class ArgoWorkflowsHttpClient private constructor(
         }
 
         val payload = response.expectJson()
-        val items = payload["items"]?.jsonArray ?: JsonArray(emptyList())
+        val items = (payload["items"] as? JsonArray) ?: JsonArray(emptyList())
         return items.mapNotNull { entry ->
             entry.toCronWorkflowSummary(config.defaultNamespace)
         }
@@ -227,7 +239,7 @@ class ArgoWorkflowsHttpClient private constructor(
         }
 
         val payload = response.expectJson()
-        val items = payload["items"]?.jsonArray ?: JsonArray(emptyList())
+        val items = (payload["items"] as? JsonArray) ?: JsonArray(emptyList())
         return items.mapNotNull { entry ->
             entry.toWorkflowTemplateSummary(config.defaultNamespace)
         }
@@ -246,7 +258,7 @@ class ArgoWorkflowsHttpClient private constructor(
         }
 
         val payload = response.expectJson()
-        val items = payload["items"]?.jsonArray ?: JsonArray(emptyList())
+        val items = (payload["items"] as? JsonArray) ?: JsonArray(emptyList())
         return items.mapNotNull { entry ->
             entry.toWorkflowTemplateSummary(null)
         }
@@ -372,7 +384,7 @@ private fun JsonElement.toCronWorkflowSummary(
     val suspended = spec?.get("suspend")?.jsonPrimitive?.booleanOrNull
     val timezone = spec?.get("timezone")?.jsonPrimitive?.contentOrNull
     val lastScheduledTime = status?.get("lastScheduledTime")?.jsonPrimitive?.contentOrNull?.parseInstant()
-    val activeWorkflows = status?.get("active")?.jsonArray
+    val activeWorkflows = (status?.get("active") as? JsonArray)
         ?.mapNotNull { active ->
             val activeObj = active as? JsonObject ?: return@mapNotNull null
             activeObj["name"]?.jsonPrimitive?.contentOrNull
@@ -493,5 +505,3 @@ private fun JsonElement.toJsonPrimitiveString(): String {
 
 private fun String.parseInstant(): kotlin.time.Instant? =
     runCatching { kotlin.time.Instant.parse(this) }.getOrNull()
-
-private fun io.ktor.http.HttpStatusCode.isSuccess(): Boolean = value in 200..299

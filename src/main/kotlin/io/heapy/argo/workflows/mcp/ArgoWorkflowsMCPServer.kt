@@ -219,7 +219,11 @@ class ArgoWorkflowsMCPServer(
                 properties = buildJsonObject {
                     putJsonObject("namespace") {
                         put("type", "string")
-                        put("description", "Kubernetes namespace (optional, defaults to all namespaces)")
+                        put(
+                            "description",
+                            "Kubernetes namespace. Omit (or leave blank) to list workflows across " +
+                                "all namespaces the connection can access.",
+                        )
                     }
                     putJsonObject("status") {
                         put("type", "string")

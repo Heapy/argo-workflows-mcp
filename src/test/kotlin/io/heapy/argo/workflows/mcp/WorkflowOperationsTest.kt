@@ -89,6 +89,77 @@ class WorkflowOperationsTest {
     }
 
     @Test
+    fun `listWorkflows without namespace queries all namespaces`() = runTest {
+        val fakeClient = FakeArgoWorkflowsClient().apply {
+            listWorkflowsResult = listOf(
+                WorkflowSummary(
+                    name = "wf-a",
+                    namespace = "team-a",
+                    phase = "Running",
+                    progress = "1/1",
+                    startedAt = Instant.parse("2024-01-01T00:00:00Z"),
+                    finishedAt = null,
+                ),
+                WorkflowSummary(
+                    name = "wf-b",
+                    namespace = "team-b",
+                    phase = "Succeeded",
+                    progress = "1/1",
+                    startedAt = Instant.parse("2024-01-01T01:00:00Z"),
+                    finishedAt = Instant.parse("2024-01-01T01:01:00Z"),
+                ),
+            )
+        }
+        val ops = createOps(fakeClient)
+
+        val result = ops.listWorkflows()
+
+        assertTrue(result is OperationResult.Success)
+        val success = result as OperationResult.Success
+        assertEquals("*", success.data["namespace"])
+        assertEquals("2", success.data["count"])
+        // Queried the all-namespaces endpoint with an empty namespace.
+        assertEquals(listOf("listWorkflows::50::"), fakeClient.calls)
+        // Per-workflow namespace is included in the output.
+        assertTrue(success.data["workflows"]?.contains("team-a/wf-a") ?: false)
+        assertTrue(success.data["workflows"]?.contains("team-b/wf-b") ?: false)
+        assertTrue(success.message.contains("all namespaces"))
+    }
+
+    @Test
+    fun `listWorkflows across all namespaces drops denied namespaces`() = runTest {
+        val fakeClient = FakeArgoWorkflowsClient().apply {
+            listWorkflowsResult = listOf(
+                WorkflowSummary(
+                    name = "wf-ok",
+                    namespace = "team-a",
+                    phase = "Running",
+                    progress = "1/1",
+                    startedAt = Instant.parse("2024-01-01T00:00:00Z"),
+                    finishedAt = null,
+                ),
+                WorkflowSummary(
+                    name = "wf-blocked",
+                    namespace = "prod",
+                    phase = "Running",
+                    progress = "1/1",
+                    startedAt = Instant.parse("2024-01-01T00:00:00Z"),
+                    finishedAt = null,
+                ),
+            )
+        }
+        val ops = createOps(fakeClient, namespacesAllow = "*", namespacesDeny = "prod")
+
+        val result = ops.listWorkflows()
+
+        assertTrue(result is OperationResult.Success)
+        val success = result as OperationResult.Success
+        assertEquals("1", success.data["count"])
+        assertTrue(success.data["workflows"]?.contains("team-a/wf-ok") ?: false)
+        assertFalse(success.data["workflows"]?.contains("wf-blocked") ?: false)
+    }
+
+    @Test
     fun `getWorkflow formats detail data`() = runTest {
         val detail = WorkflowDetail(
             summary = WorkflowSummary(

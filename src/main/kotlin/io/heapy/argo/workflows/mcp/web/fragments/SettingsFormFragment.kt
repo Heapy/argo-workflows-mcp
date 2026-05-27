@@ -70,27 +70,30 @@ private fun FlowContent.namespaceFilteringFieldSet(settings: Map<String, String>
         label {
             +"Allowed Namespaces (comma-separated, * for all)"
             div {
-                textInput(name = "namespaces_allow") {
-                    value = settings["namespaces_allow"] ?: "*"
-                    attributes["hx-put"] = "/api/settings/namespaces_allow"
-                    attributes["hx-trigger"] = "change"
-                    attributes["hx-vals"] = """js:{value: event.target.value}"""
-                    attributes["hx-swap"] = "none"
-                }
+                settingsTextInput(
+                    name = "namespaces_allow",
+                    value = settings["namespaces_allow"] ?: "*",
+                )
             }
         }
 
         label {
             +"Denied Namespaces (comma-separated)"
             div {
-                textInput(name = "namespaces_deny") {
-                    value = settings["namespaces_deny"].orEmpty()
-                    attributes["hx-put"] = "/api/settings/namespaces_deny"
-                    attributes["hx-trigger"] = "change"
-                    attributes["hx-vals"] = """js:{value: event.target.value}"""
-                    attributes["hx-swap"] = "none"
-                }
+                settingsTextInput(
+                    name = "namespaces_deny",
+                    value = settings["namespaces_deny"].orEmpty(),
+                )
             }
         }
+    }
+}
+
+private fun FlowContent.settingsTextInput(name: String, value: String) {
+    textInput(name = name) {
+        this.value = value
+        attributes["hx-put"] = "/api/settings/$name"
+        attributes["hx-trigger"] = "input changed delay:300ms, change, blur"
+        attributes["hx-swap"] = "none"
     }
 }

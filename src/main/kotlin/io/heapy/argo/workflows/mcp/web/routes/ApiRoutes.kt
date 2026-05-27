@@ -166,7 +166,7 @@ private fun Route.settingsRoutes(settingsRepo: SettingsRepository) {
     put("/api/settings/{key}") {
         val key = call.parameters["key"]
         val params = call.receiveParameters()
-        val value = params["value"]
+        val value = params["value"] ?: key?.let { params[it] }
         if (key != null && value != null) {
             settingsRepo.set(key, value)
         }

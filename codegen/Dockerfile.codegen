@@ -2,13 +2,12 @@ FROM openapitools/openapi-generator-cli:v7.10.0
 
 WORKDIR /workspace
 
-# Copy the OpenAPI spec
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/*
+
 COPY argo-swagger.json /workspace/swagger-input.json
-RUN cat /workspace/swagger-input.json | \
-    sed 's/io.k8s.api.core.v1./Kubernetes/' | \
-    sed 's/io.argoproj.workflow.v1alpha1.//' | \
-    sed 's/github.com.argoproj.argo_events.pkg.apis.events.v1alpha1./ArgoEvents/' | \
-    sed 's/io.k8s.apimachinery.pkg.apis.meta.v1./ApiMachinery/' > /workspace/swagger.json
+COPY prepare-spec.sh /workspace/prepare-spec.sh
+RUN /workspace/prepare-spec.sh /workspace/swagger-input.json /workspace/swagger.json
 
 # Generate Kotlin client
 RUN docker-entrypoint.sh generate \

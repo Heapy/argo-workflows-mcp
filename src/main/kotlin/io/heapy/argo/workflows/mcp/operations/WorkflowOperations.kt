@@ -22,35 +22,56 @@ class WorkflowOperations(
     private fun requireNamespaceAllowed(namespace: String): OperationResult.Error? =
         namespaceDeniedError(namespace, namespacesAllow, namespacesDeny)
 
+    private fun namespaceAllowed(namespace: String): Boolean =
+        namespaceDeniedError(namespace, namespacesAllow, namespacesDeny) == null
+
     suspend fun listWorkflows(
         namespace: String? = null,
         status: String? = null,
         limit: Int = 50,
     ): OperationResult {
-        val targetNamespace = resolveNamespace(namespace)
-        requireNamespaceAllowed(targetNamespace)?.let { return it }
-        log.info("Listing workflows: namespace=$targetNamespace, status=$status, limit=$limit")
+        // An empty namespace makes Argo (GET /api/v1/workflows/) return workflows
+        // from every namespace the connection can access.
+        val targetNamespace = namespace?.trim().orEmpty()
+        val allNamespaces = targetNamespace.isEmpty()
+
+        if (!allNamespaces) {
+            requireNamespaceAllowed(targetNamespace)?.let { return it }
+        }
+        val scopeLog = if (allNamespaces) "<all>" else targetNamespace
+        log.info("Listing workflows: namespace=$scopeLog, status=$status, limit=$limit")
 
         return runCatching {
             val workflows = argoClient.listWorkflows(targetNamespace, limit)
-            val filtered = status?.let { desired ->
+            val statusFiltered = status?.let { desired ->
                 val desiredLower = desired.lowercase()
                 workflows.filter { it.phase?.lowercase() == desiredLower }
             } ?: workflows
 
-            val message = if (filtered.isEmpty()) {
-                "No workflows found in namespace '$targetNamespace'"
+            // When listing across all namespaces, drop workflows from namespaces
+            // excluded by the allow/deny settings instead of failing the whole call.
+            val filtered = if (allNamespaces) {
+                statusFiltered.filter { namespaceAllowed(it.namespace) }
             } else {
-                "Found ${filtered.size} workflow(s) in namespace '$targetNamespace'"
+                statusFiltered
+            }
+
+            val scope = if (allNamespaces) "all namespaces" else "namespace '$targetNamespace'"
+            val message = if (filtered.isEmpty()) {
+                "No workflows found in $scope"
+            } else {
+                "Found ${filtered.size} workflow(s) in $scope"
             }
 
             val data = mutableMapOf(
-                "namespace" to targetNamespace,
+                "namespace" to if (allNamespaces) "*" else targetNamespace,
                 "count" to filtered.size.toString(),
             )
             status?.let { data["status_filter"] = it }
             if (filtered.isNotEmpty()) {
-                data["workflows"] = filtered.joinToString(separator = "\n") { it.toDisplayString() }
+                data["workflows"] = filtered.joinToString(separator = "\n") {
+                    it.toDisplayString(includeNamespace = allNamespaces)
+                }
             }
 
             OperationResult.Success(
@@ -58,7 +79,7 @@ class WorkflowOperations(
                 data = data,
             )
         }.getOrElse { error ->
-            log.error("Failed to list workflows for namespace={}", targetNamespace, error)
+            log.error("Failed to list workflows for namespace={}", scopeLog, error)
             error.toOperationError("list workflows")
         }
     }
@@ -295,7 +316,11 @@ private fun confirmationTokenFor(namespace: String, name: String): String =
 
 private const val DEFAULT_LOG_LINE_LIMIT = 200
 
-private fun WorkflowSummary.toDisplayString(): String = buildString {
+private fun WorkflowSummary.toDisplayString(includeNamespace: Boolean = false): String = buildString {
+    if (includeNamespace) {
+        append(namespace)
+        append("/")
+    }
     append(name)
     append(" [")
     append(phase ?: "Unknown")
