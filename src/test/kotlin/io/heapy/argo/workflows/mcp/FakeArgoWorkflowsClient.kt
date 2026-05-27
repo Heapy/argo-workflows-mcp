@@ -30,8 +30,10 @@ class FakeArgoWorkflowsClient : ArgoWorkflowsClient {
         raw = JsonObject(emptyMap())
     )
     var workflowLogsResult: WorkflowLogs = WorkflowLogs(emptyList())
-    var terminateWorkflowResult: WorkflowSummary = workflowDetailResult.summary.copy(phase = "Failed")
-    var retryWorkflowResult: WorkflowSummary = workflowDetailResult.summary.copy(name = "default-retry", phase = "Running")
+    var terminateWorkflowResult: WorkflowSummary = workflowDetailResult.summary
+        .copy(phase = "Failed")
+    var retryWorkflowResult: WorkflowSummary = workflowDetailResult.summary
+        .copy(name = "default-retry", phase = "Running")
     var listCronWorkflowsResult: List<CronWorkflowSummary> = emptyList()
     var cronWorkflowDetailResult: CronWorkflowDetail = CronWorkflowDetail(
         summary = CronWorkflowSummary(

@@ -210,8 +210,14 @@ class MCPServerTest {
 
         assertEquals(true, cronResult?.isError)
         assertEquals(true, templateResult?.isError)
-        assertTrue(cronResult?.content?.filterIsInstance<TextContent>()?.single()?.text?.contains("No active Argo") == true)
-        assertTrue(templateResult?.content?.filterIsInstance<TextContent>()?.single()?.text?.contains("No active Argo") == true)
+        assertTrue(
+            cronResult?.content?.filterIsInstance<TextContent>()?.single()
+                ?.text?.contains("No active Argo") == true,
+        )
+        assertTrue(
+            templateResult?.content?.filterIsInstance<TextContent>()?.single()
+                ?.text?.contains("No active Argo") == true,
+        )
     }
 
     private fun testConnectionRecord(baseUrl: String): ConnectionRecord {

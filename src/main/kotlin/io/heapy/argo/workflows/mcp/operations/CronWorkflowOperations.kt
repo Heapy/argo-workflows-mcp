@@ -138,34 +138,41 @@ class CronWorkflowOperations(
         suspend: Boolean,
     ): OperationResult {
         val targetNamespace = resolveNamespace(namespace)
-        requireNamespaceAllowed(targetNamespace)?.let { return it }
+        val namespaceError = requireNamespaceAllowed(targetNamespace)
         log.info("Toggling cron suspension: namespace=$targetNamespace, name=$name, suspend=$suspend")
 
-        if (!allowMutations) {
-            return OperationResult.Error(
+        return when {
+            namespaceError != null -> namespaceError
+
+            !allowMutations -> OperationResult.Error(
                 message = "Mutation operations are not allowed by configuration",
                 code = ERROR_CODE_PERMISSION_DENIED,
             )
-        }
 
-        return runCatching {
-            val cronWorkflow = if (suspend) {
-                argoClient.suspendCronWorkflow(targetNamespace, name)
-            } else {
-                argoClient.resumeCronWorkflow(targetNamespace, name)
+            else -> runCatching {
+                val cronWorkflow = if (suspend) {
+                    argoClient.suspendCronWorkflow(targetNamespace, name)
+                } else {
+                    argoClient.resumeCronWorkflow(targetNamespace, name)
+                }
+
+                OperationResult.Success(
+                    message = "CronWorkflow '${cronWorkflow.name}' ${if (suspend) "suspended" else "resumed"}",
+                    data = mapOf(
+                        "namespace" to cronWorkflow.namespace,
+                        "cron_workflow" to cronWorkflow.name,
+                        "suspended" to (cronWorkflow.suspended?.toString() ?: suspend.toString()),
+                    ),
+                )
+            }.getOrElse { error ->
+                log.error(
+                    "Failed to toggle CronWorkflow suspension namespace={}, name={}",
+                    targetNamespace,
+                    name,
+                    error,
+                )
+                error.toOperationError("toggle CronWorkflow suspension")
             }
-
-            OperationResult.Success(
-                message = "CronWorkflow '${cronWorkflow.name}' ${if (suspend) "suspended" else "resumed"}",
-                data = mapOf(
-                    "namespace" to cronWorkflow.namespace,
-                    "cron_workflow" to cronWorkflow.name,
-                    "suspended" to (cronWorkflow.suspended?.toString() ?: suspend.toString()),
-                ),
-            )
-        }.getOrElse { error ->
-            log.error("Failed to toggle CronWorkflow suspension namespace={}, name={}", targetNamespace, name, error)
-            error.toOperationError("toggle CronWorkflow suspension")
         }
     }
 }
