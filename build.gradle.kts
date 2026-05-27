@@ -22,12 +22,12 @@ configurations.all {
             "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion",
             "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion",
             "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion",
-            "org.jetbrains:annotations:23.0.0",
+            "org.jetbrains:annotations:26.1.0",
             "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-json-io:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-io-core:0.9.0",
-            "org.slf4j:slf4j-api:2.0.17",
+            "org.slf4j:slf4j-api:2.0.18",
         )
     }
 }
