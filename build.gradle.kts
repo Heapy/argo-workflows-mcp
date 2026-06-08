@@ -15,6 +15,7 @@ configurations.all {
         // Pre-resolve known transitive conflicts to the project's pinned
         // versions so failOnVersionConflict catches only new/unexpected ones.
         val kotlinVersion = libs.versions.kotlin.get()
+        val coroutinesVersion = libs.versions.kotlinx.coroutines.get()
         val serializationVersion = libs.versions.kotlinx.serialization.get()
         force(
             "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion",
@@ -23,6 +24,12 @@ configurations.all {
             "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion",
             "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion",
             "org.jetbrains:annotations:26.1.0",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-bom:$coroutinesVersion",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$coroutinesVersion",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:$coroutinesVersion",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion",
+            "org.jetbrains.kotlinx:kotlinx-coroutines-test-jvm:$coroutinesVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-json-io:$serializationVersion",
