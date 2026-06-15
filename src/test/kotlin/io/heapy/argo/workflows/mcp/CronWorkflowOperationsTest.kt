@@ -3,6 +3,7 @@ package io.heapy.argo.workflows.mcp
 import io.heapy.argo.client.CronWorkflowSummary
 import io.heapy.argo.client.WorkflowSummary
 import io.heapy.argo.workflows.mcp.operations.CronWorkflowOperations
+import io.heapy.argo.workflows.mcp.operations.NamespacePolicy
 import io.heapy.argo.workflows.mcp.operations.OperationResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -20,8 +21,10 @@ class CronWorkflowOperationsTest {
     ) = CronWorkflowOperations(
         defaultNamespace = "default",
         allowMutations = allowMutations,
-        namespacesAllow = namespacesAllow,
-        namespacesDeny = namespacesDeny,
+        namespacePolicy = NamespacePolicy(
+            allow = namespacesAllow,
+            deny = namespacesDeny,
+        ),
         argoClient = fakeClient,
     )
 
@@ -66,7 +69,7 @@ class CronWorkflowOperationsTest {
 
     @Test
     fun `toggleCronSuspension requires mutations enabled`() = runTest {
-        val cronOps = createOps(allowMutations = false)
+        val cronOps = createOps()
 
         val result = cronOps.toggleCronSuspension(
             namespace = "default",

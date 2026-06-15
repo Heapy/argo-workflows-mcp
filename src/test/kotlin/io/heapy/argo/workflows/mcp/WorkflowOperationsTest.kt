@@ -4,6 +4,7 @@ import io.heapy.argo.client.WorkflowDetail
 import io.heapy.argo.client.WorkflowLogEntry
 import io.heapy.argo.client.WorkflowLogs
 import io.heapy.argo.client.WorkflowSummary
+import io.heapy.argo.workflows.mcp.operations.NamespacePolicy
 import io.heapy.argo.workflows.mcp.operations.OperationResult
 import io.heapy.argo.workflows.mcp.operations.WorkflowOperations
 import kotlinx.coroutines.test.runTest
@@ -27,8 +28,10 @@ class WorkflowOperationsTest {
         allowDestructive = allowDestructive,
         allowMutations = allowMutations,
         requireConfirmation = requireConfirmation,
-        namespacesAllow = namespacesAllow,
-        namespacesDeny = namespacesDeny,
+        namespacePolicy = NamespacePolicy(
+            allow = namespacesAllow,
+            deny = namespacesDeny,
+        ),
         argoClient = fakeClient,
     )
 
@@ -80,7 +83,7 @@ class WorkflowOperationsTest {
 
     @Test
     fun `listWorkflows lets deny list override wildcard allow`() = runTest {
-        val ops = createOps(namespacesAllow = "*", namespacesDeny = "prod")
+        val ops = createOps(namespacesDeny = "prod")
 
         val result = ops.listWorkflows(namespace = "prod")
 
@@ -148,7 +151,7 @@ class WorkflowOperationsTest {
                 ),
             )
         }
-        val ops = createOps(fakeClient, namespacesAllow = "*", namespacesDeny = "prod")
+        val ops = createOps(fakeClient, namespacesDeny = "prod")
 
         val result = ops.listWorkflows()
 
@@ -208,7 +211,7 @@ class WorkflowOperationsTest {
         }
         val ops = createOps(fakeClient)
 
-        val result = ops.getWorkflowLogs(namespace = "default", workflowName = "demo", podName = null)
+        val result = ops.getWorkflowLogs(namespace = "default", workflowName = "demo")
 
         assertTrue(result is OperationResult.Success)
         val success = result as OperationResult.Success
@@ -277,7 +280,6 @@ class WorkflowOperationsTest {
             namespace = "default",
             name = "test-workflow",
             reason = "test",
-            dryRun = true,
         )
 
         assertTrue(result is OperationResult.DryRun)
@@ -291,7 +293,6 @@ class WorkflowOperationsTest {
         val ops = createOps(
             fakeClient = fakeClient,
             allowDestructive = true,
-            requireConfirmation = true,
         )
 
         val result = ops.terminateWorkflow(

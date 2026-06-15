@@ -15,11 +15,10 @@ internal fun String.toNamespaceSet(): Set<String> =
 
 internal fun namespaceDeniedError(
     namespace: String,
-    namespacesAllow: String,
-    namespacesDeny: String,
+    policy: NamespacePolicy,
 ): OperationResult.Error? {
-    val allowedNamespaces = namespacesAllow.toNamespaceSet()
-    val deniedNamespaces = namespacesDeny.toNamespaceSet()
+    val allowedNamespaces = policy.allow.toNamespaceSet()
+    val deniedNamespaces = policy.deny.toNamespaceSet()
     val isAllowed = "*" in allowedNamespaces || namespace in allowedNamespaces
     val isDenied = namespace in deniedNamespaces
     return if (isAllowed && !isDenied) {
@@ -58,3 +57,9 @@ private fun Duration.formatParts(): String =
 
 internal fun formatInstant(instant: Instant?): String =
     instant?.toString() ?: "n/a"
+
+internal fun Map<String, String>.formatEntries(
+    separator: String = ", ",
+    assignment: String = "=",
+): String =
+    entries.joinToString(separator) { (key, value) -> "$key$assignment$value" }

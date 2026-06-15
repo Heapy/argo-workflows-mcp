@@ -46,7 +46,7 @@ internal class ConnectionTools(
         }
     }
 
-    @Suppress("ReturnCount")
+    @Suppress("ReturnCount", "LongMethod")
     private fun createConnection(arguments: Map<String, JsonElement>?): CallToolResult {
         val name = arguments.requiredNonBlankString("name")
             ?: return errorResult("name is required")
@@ -55,15 +55,23 @@ internal class ConnectionTools(
         validateBaseUrl(baseUrl)?.let { return it }
 
         val defaultNamespace = arguments.stringOrNull("default_namespace")
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
+            ?.trimToNull()
             ?: DEFAULT_NAMESPACE
         val bearerToken = arguments.stringOrNull("bearer_token")?.trimToNull()
         val username = arguments.stringOrNull("username")?.trimToNull()
         val password = arguments.stringOrNull("password")?.trimToNull()
-        val authType = resolveAuthType(arguments, bearerToken, username, password)
-            ?: return errorResult("auth_type must be one of: none, bearer, basic")
-        validateAuth(authType, bearerToken, username, password)?.let { return it }
+        val authType = resolveAuthType(
+            arguments = arguments,
+            bearerToken = bearerToken,
+            username = username,
+            password = password,
+        ) ?: return errorResult("auth_type must be one of: none, bearer, basic")
+        validateAuth(
+            authType = authType,
+            bearerToken = bearerToken,
+            username = username,
+            password = password,
+        )?.let { return it }
 
         val requestTimeoutSeconds = arguments.intOrNull("request_timeout_seconds")
             ?: DEFAULT_REQUEST_TIMEOUT_SECONDS.toInt()
@@ -190,9 +198,8 @@ private fun resolveAuthType(
     password: String?,
 ): String? {
     val explicitAuthType = arguments.stringOrNull("auth_type")
-        ?.trim()
+        ?.trimToNull()
         ?.lowercase()
-        ?.takeIf { it.isNotEmpty() }
     val authType = explicitAuthType ?: when {
         bearerToken != null -> AUTH_TYPE_BEARER
         username != null || password != null -> AUTH_TYPE_BASIC

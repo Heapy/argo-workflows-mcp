@@ -66,9 +66,17 @@ dependencies {
 testing {
     suites {
         val test by getting(JvmTestSuite::class) {
-            useJUnitJupiter("6.0.2")
+            useJUnitJupiter("6.1.0")
         }
     }
+}
+
+tasks.test {
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
+
+tasks.check {
+    dependsOn("detektMain")
 }
 
 java {

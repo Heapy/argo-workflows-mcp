@@ -10,8 +10,7 @@ class WorkflowOperations(
     private val allowDestructive: Boolean,
     private val allowMutations: Boolean,
     private val requireConfirmation: Boolean,
-    private val namespacesAllow: String = "*",
-    private val namespacesDeny: String = "",
+    private val namespacePolicy: NamespacePolicy = NamespacePolicy(),
     private val argoClient: ArgoWorkflowsClient,
 ) {
     private companion object : Logger()
@@ -20,10 +19,10 @@ class WorkflowOperations(
         namespace?.takeIf { it.isNotBlank() } ?: defaultNamespace
 
     private fun requireNamespaceAllowed(namespace: String): OperationResult.Error? =
-        namespaceDeniedError(namespace, namespacesAllow, namespacesDeny)
+        namespaceDeniedError(namespace, namespacePolicy)
 
     private fun namespaceAllowed(namespace: String): Boolean =
-        namespaceDeniedError(namespace, namespacesAllow, namespacesDeny) == null
+        namespaceDeniedError(namespace, namespacePolicy) == null
 
     suspend fun listWorkflows(
         namespace: String? = null,
