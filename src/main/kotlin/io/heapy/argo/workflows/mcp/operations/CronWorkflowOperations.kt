@@ -8,8 +8,7 @@ import io.heapy.komok.tech.logging.Logger
 class CronWorkflowOperations(
     private val defaultNamespace: String,
     private val allowMutations: Boolean,
-    private val namespacesAllow: String = "*",
-    private val namespacesDeny: String = "",
+    private val namespacePolicy: NamespacePolicy = NamespacePolicy(),
     private val argoClient: ArgoWorkflowsClient,
 ) {
     private companion object : Logger()
@@ -18,7 +17,7 @@ class CronWorkflowOperations(
         namespace?.takeIf { it.isNotBlank() } ?: defaultNamespace
 
     private fun requireNamespaceAllowed(namespace: String): OperationResult.Error? =
-        namespaceDeniedError(namespace, namespacesAllow, namespacesDeny)
+        namespaceDeniedError(namespace, namespacePolicy)
 
     suspend fun listCronWorkflows(
         namespace: String? = null,
@@ -72,20 +71,31 @@ class CronWorkflowOperations(
                 data = buildMap {
                     put("name", summary.name)
                     put("namespace", summary.namespace)
-                    put("schedules", summary.schedules.joinToString(", ").ifBlank { "n/a" })
+                    put(
+                        "schedules",
+                        summary.schedules
+                            .joinToString(", ")
+                            .ifBlank { "n/a" },
+                    )
                     put("suspended", summary.suspended?.toString() ?: "n/a")
                     put("last_scheduled_time", formatInstant(summary.lastScheduledTime))
-                    put("active_workflows", summary.activeWorkflows.joinToString(", ").ifBlank { "none" })
+                    put(
+                        "active_workflows",
+                        summary
+                            .activeWorkflows
+                            .joinToString(", ")
+                            .ifBlank { "none" },
+                    )
                     summary.phase?.let { put("phase", it) }
                     summary.timezone?.let { put("timezone", it) }
                     detail.concurrencyPolicy?.let { put("concurrency_policy", it) }
                     detail.successfulJobsHistoryLimit?.let { put("successful_jobs_history_limit", it.toString()) }
                     detail.failedJobsHistoryLimit?.let { put("failed_jobs_history_limit", it.toString()) }
                     if (detail.labels.isNotEmpty()) {
-                        put("labels", detail.labels.entries.joinToString(", ") { (k, v) -> "$k=$v" })
+                        put("labels", detail.labels.formatEntries())
                     }
                     if (detail.annotations.isNotEmpty()) {
-                        put("annotations", detail.annotations.entries.joinToString(", ") { (k, v) -> "$k=$v" })
+                        put("annotations", detail.annotations.formatEntries())
                     }
                 },
             )

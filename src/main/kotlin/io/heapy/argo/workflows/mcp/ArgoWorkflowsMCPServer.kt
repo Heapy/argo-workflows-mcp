@@ -5,6 +5,7 @@ import io.heapy.argo.client.ArgoClientConfig
 import io.heapy.argo.client.ArgoWorkflowsClient
 import io.heapy.argo.client.ArgoWorkflowsHttpClient
 import io.heapy.argo.workflows.mcp.operations.CronWorkflowOperations
+import io.heapy.argo.workflows.mcp.operations.NamespacePolicy
 import io.heapy.argo.workflows.mcp.operations.OperationResult
 import io.heapy.argo.workflows.mcp.operations.TemplateOperations
 import io.heapy.argo.workflows.mcp.operations.WorkflowOperations
@@ -129,6 +130,11 @@ class ArgoWorkflowsMCPServer(
         clearCurrentClient()
     }
 
+    private fun namespacePolicy(): NamespacePolicy = NamespacePolicy(
+        allow = settingsRepo.getNamespacesAllow(),
+        deny = settingsRepo.getNamespacesDeny(),
+    )
+
     private fun createWorkflowOps(
         client: ArgoWorkflowsClient,
         conn: ConnectionRecord,
@@ -137,8 +143,7 @@ class ArgoWorkflowsMCPServer(
         allowDestructive = settingsRepo.getAllowDestructive(),
         allowMutations = settingsRepo.getAllowMutations(),
         requireConfirmation = settingsRepo.getRequireConfirmation(),
-        namespacesAllow = settingsRepo.getNamespacesAllow(),
-        namespacesDeny = settingsRepo.getNamespacesDeny(),
+        namespacePolicy = namespacePolicy(),
         argoClient = client,
     )
 
@@ -148,8 +153,7 @@ class ArgoWorkflowsMCPServer(
     ): CronWorkflowOperations = CronWorkflowOperations(
         defaultNamespace = conn.defaultNamespace,
         allowMutations = settingsRepo.getAllowMutations(),
-        namespacesAllow = settingsRepo.getNamespacesAllow(),
-        namespacesDeny = settingsRepo.getNamespacesDeny(),
+        namespacePolicy = namespacePolicy(),
         argoClient = client,
     )
 
@@ -158,8 +162,7 @@ class ArgoWorkflowsMCPServer(
         conn: ConnectionRecord,
     ): TemplateOperations = TemplateOperations(
         defaultNamespace = conn.defaultNamespace,
-        namespacesAllow = settingsRepo.getNamespacesAllow(),
-        namespacesDeny = settingsRepo.getNamespacesDeny(),
+        namespacePolicy = namespacePolicy(),
         argoClient = client,
     )
 

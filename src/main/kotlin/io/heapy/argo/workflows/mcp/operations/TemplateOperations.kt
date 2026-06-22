@@ -9,8 +9,7 @@ import io.heapy.komok.tech.logging.Logger
  */
 class TemplateOperations(
     private val defaultNamespace: String,
-    private val namespacesAllow: String = "*",
-    private val namespacesDeny: String = "",
+    private val namespacePolicy: NamespacePolicy = NamespacePolicy(),
     private val argoClient: ArgoWorkflowsClient,
 ) {
     private companion object : Logger()
@@ -19,7 +18,7 @@ class TemplateOperations(
         namespace?.takeIf { it.isNotBlank() } ?: defaultNamespace
 
     private fun requireNamespaceAllowed(namespace: String): OperationResult.Error? =
-        namespaceDeniedError(namespace, namespacesAllow, namespacesDeny)
+        namespaceDeniedError(namespace, namespacePolicy)
 
     suspend fun listWorkflowTemplates(
         namespace: String? = null,
@@ -70,10 +69,10 @@ class TemplateOperations(
                 data = templateData(summary) + buildMap {
                     put("namespace", targetNamespace)
                     if (detail.parameters.isNotEmpty()) {
-                        put("parameters", detail.parameters.entries.joinToString("\n") { (k, v) -> "$k = $v" })
+                        put("parameters", detail.parameters.formatEntries(separator = "\n", assignment = " = "))
                     }
                     if (detail.annotations.isNotEmpty()) {
-                        put("annotations", detail.annotations.entries.joinToString(", ") { (k, v) -> "$k=$v" })
+                        put("annotations", detail.annotations.formatEntries())
                     }
                 },
             )
@@ -124,10 +123,10 @@ class TemplateOperations(
                 message = "ClusterWorkflowTemplate '${summary.name}' retrieved",
                 data = templateData(summary) + buildMap {
                     if (detail.parameters.isNotEmpty()) {
-                        put("parameters", detail.parameters.entries.joinToString("\n") { (k, v) -> "$k = $v" })
+                        put("parameters", detail.parameters.formatEntries(separator = "\n", assignment = " = "))
                     }
                     if (detail.annotations.isNotEmpty()) {
-                        put("annotations", detail.annotations.entries.joinToString(", ") { (k, v) -> "$k=$v" })
+                        put("annotations", detail.annotations.formatEntries())
                     }
                 },
             )
@@ -150,6 +149,6 @@ private fun templateData(summary: WorkflowTemplateSummary): Map<String, String> 
     put("entrypoint", summary.entrypoint ?: "n/a")
     put("template_count", summary.templateCount.toString())
     if (summary.labels.isNotEmpty()) {
-        put("labels", summary.labels.entries.joinToString(", ") { (k, v) -> "$k=$v" })
+        put("labels", summary.labels.formatEntries())
     }
 }

@@ -1,6 +1,7 @@
 package io.heapy.argo.workflows.mcp
 
 import io.heapy.argo.client.WorkflowTemplateSummary
+import io.heapy.argo.workflows.mcp.operations.NamespacePolicy
 import io.heapy.argo.workflows.mcp.operations.OperationResult
 import io.heapy.argo.workflows.mcp.operations.TemplateOperations
 import kotlinx.coroutines.test.runTest
@@ -16,8 +17,10 @@ class TemplateOperationsTest {
         namespacesDeny: String = "",
     ) = TemplateOperations(
         defaultNamespace = "default",
-        namespacesAllow = namespacesAllow,
-        namespacesDeny = namespacesDeny,
+        namespacePolicy = NamespacePolicy(
+            allow = namespacesAllow,
+            deny = namespacesDeny,
+        ),
         argoClient = fakeClient,
     )
 
