@@ -17,6 +17,13 @@ configurations.all {
         val kotlinVersion = libs.versions.kotlin.get()
         val coroutinesVersion = libs.versions.kotlinx.coroutines.get()
         val serializationVersion = libs.versions.kotlinx.serialization.get()
+        // mcp-kotlin-sdk 0.14.0 pins ktor 3.4.3; align all ktor modules
+        // with the project's ktor version catalog.
+        eachDependency {
+            if (requested.group == "io.ktor") {
+                useVersion("3.5.1")
+            }
+        }
         force(
             "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion",
             "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion",
