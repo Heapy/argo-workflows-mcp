@@ -17,11 +17,11 @@ configurations.all {
         val kotlinVersion = libs.versions.kotlin.get()
         val coroutinesVersion = libs.versions.kotlinx.coroutines.get()
         val serializationVersion = libs.versions.kotlinx.serialization.get()
-        // mcp-kotlin-sdk 0.14.0 pins ktor 3.4.3; align all ktor modules
-        // with the project's ktor version catalog.
+        // mcp-kotlin-sdk depends on an older ktor than the ktor version catalog.
+        val ktorVersion = ktorLibs.versions.ktor.get()
         eachDependency {
             if (requested.group == "io.ktor") {
-                useVersion("3.5.1")
+                useVersion(ktorVersion)
             }
         }
         force(
@@ -41,6 +41,9 @@ configurations.all {
             "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-json-io:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-io-core:0.9.1",
+            "org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat",
+            "org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.8.0-0.6.x-compat",
+            "com.squareup.okio:okio:3.12.0",
             "org.slf4j:slf4j-api:2.0.20",
         )
     }
