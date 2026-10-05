@@ -43,7 +43,7 @@ configurations.all {
             "org.jetbrains.kotlinx:kotlinx-io-core:0.9.1",
             "org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat",
             "org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.8.0-0.6.x-compat",
-            "com.squareup.okio:okio:3.12.0",
+            "com.squareup.okio:okio:3.18.2",
             "org.slf4j:slf4j-api:2.0.20",
         )
     }
