@@ -40,7 +40,7 @@ configurations.all {
             "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
             "org.jetbrains.kotlinx:kotlinx-serialization-json-io:$serializationVersion",
-            "org.jetbrains.kotlinx:kotlinx-io-core:0.9.1",
+            "org.jetbrains.kotlinx:kotlinx-io-core:0.9.2",
             "org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat",
             "org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.8.0-0.6.x-compat",
             "com.squareup.okio:okio:3.18.2",
